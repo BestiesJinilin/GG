@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Payment History</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/homepage.css' %}">
+<style>
+body { background:#f4f6f9; font-family:Arial, Helvetica, sans-serif; }
+.card { border:none; border-radius:10px; }
+h4 { font-weight:600; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAVBAR -->
+<nav class="navbar navbar-dark topbar px-4">
+<a class="navbar-brand d-flex align-items-center" href="#">
+<img src="{% static 'img/landing/logo.png' %}" height="35" class="me-2">
+<span class="fw-bold text-white">Green garden</span>
+</a>
+<div class="ms-auto d-flex align-items-center">
+<div class="me-4 text-end text-white">
+<div id="date" class="small"></div>
+<div id="time" class="fw-bold"></div>
+</div>
+<span class="admin-box">{{ user.username.title }}</span>
+<a href="{% url 'logout' %}" class="btn btn-danger px-4 ms-2">Logout</a>
+</div>
+</nav>
+
+<div class="d-flex">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+<ul class="nav flex-column">
+<li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Dashboard</a></li>
+<li class="nav-item"><a class="nav-link" href="{% url 'add-client' %}">Add Client</a></li>
+<li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Available Plans</a></li>
+<li class="nav-item"><a class="nav-link" href="{% url 'records' %}">Client Records</a></li>
+<li class="nav-item"><a class="nav-link active" href="{% url 'payment-history' %}">Payments</a></li>
+</ul>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container mt-4">
+
+<h4 class="mb-4">Payment History - Juan Dela Cruz (ID: 001)</h4>
+
+<!-- CLIENT DETAILS -->
+<div class="card shadow-sm mb-4">
+<div class="card-body">
+<h5 class="mb-3">Client Information</h5>
+<div class="row">
+<div class="col-md-6 mb-2"><strong>ID:</strong> 001</div>
+<div class="col-md-6 mb-2"><strong>Full Name:</strong> Juan Dela Cruz</div>
+<div class="col-md-6 mb-2"><strong>Contact:</strong> 09123456789</div>
+<div class="col-md-6 mb-2"><strong>Civil Status:</strong> Married</div>
+<div class="col-md-6 mb-2"><strong>Date of Birth:</strong> Jan 12, 1985</div>
+<div class="col-md-6 mb-2"><strong>Address:</strong> Quezon City</div>
+<div class="col-md-6 mb-2"><strong>Email:</strong> juandelacruz@email.com</div>
+</div>
+</div>
+
+<!-- PAYMENT TABLE -->
+<div class="card shadow-sm">
+<div class="card-body">
+<div class="table-responsive">
+<table class="table table-hover align-middle" id="paymentTable">
+<thead class="table-dark">
+<tr>
+<th>Month</th>
+<th>Amount</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+
+
+
+<tr>
+<td></td>
+<td class="fw-semibold"></td>
+<td><span class="badge"></span></td>
+<td>
+<a href="" class="btn btn-sm btn-outline-success">Pay Now</a>
+</td>
+</tr>
+</tbody>
+
+</table>
+</div>
+</div>
+</div>
+
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal fade" id="payModal" tabindex="-1">
+<div class="modal-dialog">
+<div class="modal-content">
+
+<div class="modal-header">
+<h5 class="modal-title">Confirm Payment</h5>
+<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+<div class="modal-body">
+<p>Enter PIN to confirm payment</p>
+<input type="password" id="paymentPin" class="form-control" placeholder="Enter PIN">
+<div id="pinError" class="text-danger small mt-2 d-none">Invalid PIN</div>
+</div>
+
+<div class="modal-footer">
+<button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+<button class="btn btn-success" id="confirmPayBtn">Confirm Payment</button>
+</div>
+
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+
+// Clock
+function updateClock(){
+const now = new Date();
+document.getElementById("date").textContent = now.toLocaleDateString();
+document.getElementById("time").textContent = now.toLocaleTimeString();
+}
+setInterval(updateClock,1000);
+updateClock();
+
+// Months Remaining
+function updateMonthsRemaining(){
+let pending = document.querySelectorAll("#paymentTable tbody tr span.bg-danger").length;
+document.getElementById("monthsRemaining").textContent = pending;
+}
+updateMonthsRemaining();
+
+// Modal logic
+let selectedRow = null;
+const correctPin = "1234";
+
+document.querySelectorAll('.pay-btn').forEach(btn => {
+btn.addEventListener('click', () => {
+selectedRow = btn.closest('tr');
+document.getElementById("paymentPin").value = "";
+document.getElementById("pinError").classList.add("d-none");
+
+const modal = new bootstrap.Modal(document.getElementById('payModal'));
+modal.show();
+});
+});
+
+document.getElementById("confirmPayBtn").addEventListener("click", () => {
+
+const enteredPin = document.getElementById("paymentPin").value;
+
+if(enteredPin !== correctPin){
+document.getElementById("pinError").classList.remove("d-none");
+return;
+}
+
+const now = new Date();
+const formattedDate = now.toLocaleDateString();
+const formattedTime = now.toLocaleTimeString();
+
+const statusCell = selectedRow.cells[2].querySelector("span");
+statusCell.textContent = "Paid";
+statusCell.classList.remove("bg-danger");
+statusCell.classList.add("bg-success");
+
+selectedRow.cells[3].textContent = `${formattedDate} ${formattedTime}`;
+
+updateMonthsRemaining();
+
+bootstrap.Modal.getInstance(document.getElementById('payModal')).hide();
+
+});
+
+</script>
+
+</body>
+</html>
