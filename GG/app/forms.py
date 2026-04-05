@@ -125,6 +125,21 @@ class ClientForm(BootstrapForm):
         if not address:
             raise forms.ValidationError("Home address is required.")
         return address.title()
+    
+    def clean_client_date_birth(self):
+        dob = self.cleaned_data.get("client_date_birth")
+
+        if dob:
+            from datetime import date
+            today = date.today()
+
+            # Correct age calculation
+            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+            if age < 18:
+                raise forms.ValidationError("Client must be at least 18 years old.")
+
+        return dob
 
     def clean_client_religion(self):
         religion = self.cleaned_data.get("client_religion", "").strip()
@@ -158,11 +173,17 @@ class ClientForm(BootstrapForm):
 
     def clean_client_id_number(self):
         id_num = self.cleaned_data.get("client_id_number", "").strip()
+
         if not id_num:
             raise forms.ValidationError("ID number is required.")
+
+        if not id_num.isdigit():
+            raise forms.ValidationError("ID number must contain digits only.")
+
         if len(id_num) < 5:
             raise forms.ValidationError("ID number appears too short.")
-        return id_num.upper()
+
+        return id_num
 
     def clean_client_date_issued(self):
         date_value = self.cleaned_data.get("client_date_issued")
