@@ -30,18 +30,18 @@ class ClientPersonalInfo(models.Model):
     client_spouse_employer = models.CharField(max_length=200, blank=True, null=True)
 
     client_id_type = models.CharField(
-            max_length=50,
-            choices=[
-                ("Passport", "Passport"),
-                ("Driver's License", "Driver's License"),
-                ("National ID", "National ID"),
-                ("SSS ID", "SSS ID"),
-                ("GSIS ID", "GSIS ID"),
-                ("UMID", "UMID"),
-                ("Postal ID", "Postal ID"),
-            ],
-        )
-    
+        max_length=50,
+        choices=[
+            ("Passport", "Passport"),
+            ("Driver's License", "Driver's License"),
+            ("National ID", "National ID"),
+            ("SSS ID", "SSS ID"),
+            ("GSIS ID", "GSIS ID"),
+            ("UMID", "UMID"),
+            ("Postal ID", "Postal ID"),
+        ],
+    )
+
     client_id_number = models.CharField(max_length=20)
     client_date_issued = models.DateField()
     client_place_issued = models.CharField(max_length=200)
@@ -64,16 +64,16 @@ class Beneficiary(models.Model):
     relationship = models.CharField(max_length=200)
 
     def __str__(self):
-        return f"{self.client.full_name()}: {self.name} - {self.relationship} "
+        return f"{self.client.full_name()}: {self.name} - {self.relationship}"
 
 
 class ClientStatus(models.Model):
     client = models.ForeignKey(ClientPersonalInfo, on_delete=models.CASCADE)
     plan = models.CharField(max_length=200)
     monthly_payment = models.DecimalField(max_digits=20, decimal_places=2)
-    duration = models.IntegerField()
-    months_remaining = models.IntegerField()
-    start_date = models.DateField()
+    duration = models.IntegerField()          # total months in plan
+    months_remaining = models.IntegerField()  # decrements as payments are made
+    start_date = models.DateField()           # plan start / avail date
     balance = models.DecimalField(max_digits=20, decimal_places=2)
     paid_balance = models.DecimalField(max_digits=20, decimal_places=2)
     date_paid = models.DateTimeField(blank=True, null=True)
@@ -81,6 +81,27 @@ class ClientStatus(models.Model):
 
     def __str__(self):
         return self.client.full_name()
+
+
+class Payment(models.Model):
+    """One row per monthly instalment for a ClientStatus plan."""
+    client_status = models.ForeignKey(
+        ClientStatus,
+        on_delete=models.CASCADE,
+        related_name="payments"
+    )
+    # The calendar month this instalment covers (always day=1 for easy display)
+    month = models.DateField()
+    amount = models.DecimalField(max_digits=20, decimal_places=2)
+    is_paid = models.BooleanField(default=False)
+    date_paid = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["month"]
+
+    def __str__(self):
+        status = "Paid" if self.is_paid else "Unpaid"
+        return f"{self.client_status.client.full_name()} – {self.month.strftime('%B %Y')} – {status}"
 
 
 class UserLog(models.Model):
