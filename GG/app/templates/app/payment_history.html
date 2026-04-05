@@ -1,191 +1,249 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Client Payment History</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-{% load static %}
-<link rel="stylesheet" href="{% static 'css/homepage.css' %}">
+{% extends 'app/base.html' %}
+
+{% block title %}Payment History — {{ client.full_name }}{% endblock %}
+{% block nav_records %}active{% endblock %}
+
+{% block extra_css %}
 <style>
-body { background:#f4f6f9; font-family:Arial, Helvetica, sans-serif; }
-.card { border:none; border-radius:10px; }
-h4 { font-weight:600; }
+  .paid-row   { background-color: #f0fff4 !important; }
+  .unpaid-row { background-color: #fff8f8 !important; }
 </style>
-</head>
-<body>
+{% endblock %}
 
-<!-- TOP NAVBAR -->
-<nav class="navbar navbar-dark topbar px-4">
-<a class="navbar-brand d-flex align-items-center" href="#">
-<img src="{% static 'img/landing/logo.png' %}" height="35" class="me-2">
-<span class="fw-bold text-white">Green garden</span>
-</a>
-<div class="ms-auto d-flex align-items-center">
-<div class="me-4 text-end text-white">
-<div id="date" class="small"></div>
-<div id="time" class="fw-bold"></div>
-</div>
-<span class="admin-box">{{ user.username.title }}</span>
-<a href="{% url 'logout' %}" class="btn btn-danger px-4 ms-2">Logout</a>
-</div>
-</nav>
-
-<div class="d-flex">
-
-<!-- SIDEBAR -->
-<div class="sidebar">
-<ul class="nav flex-column">
-<li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Dashboard</a></li>
-<li class="nav-item"><a class="nav-link" href="{% url 'add-client' %}">Add Client</a></li>
-<li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Available Plans</a></li>
-<li class="nav-item"><a class="nav-link" href="{% url 'records' %}">Client Records</a></li>
-<li class="nav-item"><a class="nav-link active" href="{% url 'payment-history' %}">Payments</a></li>
-</ul>
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Payment History</h4>
+  <a href="{% url 'add-payment' client.pk %}" class="btn btn-secondary btn-sm">← Back to Summary</a>
 </div>
 
-<!-- MAIN CONTENT -->
-<div class="container mt-4">
-
-<h4 class="mb-4">Payment History - Juan Dela Cruz (ID: 001)</h4>
-
-<!-- CLIENT DETAILS -->
+<!-- Client info -->
 <div class="card shadow-sm mb-4">
 <div class="card-body">
-<h5 class="mb-3">Client Information</h5>
-<div class="row">
-<div class="col-md-6 mb-2"><strong>ID:</strong> 001</div>
-<div class="col-md-6 mb-2"><strong>Full Name:</strong> Juan Dela Cruz</div>
-<div class="col-md-6 mb-2"><strong>Contact:</strong> 09123456789</div>
-<div class="col-md-6 mb-2"><strong>Civil Status:</strong> Married</div>
-<div class="col-md-6 mb-2"><strong>Date of Birth:</strong> Jan 12, 1985</div>
-<div class="col-md-6 mb-2"><strong>Address:</strong> Quezon City</div>
-<div class="col-md-6 mb-2"><strong>Email:</strong> juandelacruz@email.com</div>
+  <h5 class="mb-3">Client Information</h5>
+  <div class="row">
+    <div class="col-md-4 mb-2"><strong>ID:</strong> {{ client.pk }}</div>
+    <div class="col-md-4 mb-2"><strong>Full Name:</strong> {{ client.full_name }}</div>
+    <div class="col-md-4 mb-2"><strong>Contact:</strong> {{ client.client_contact_number }}</div>
+    <div class="col-md-4 mb-2"><strong>Civil Status:</strong> {{ client.client_civil_status }}</div>
+    <div class="col-md-4 mb-2"><strong>Date of Birth:</strong> {{ client.client_date_birth }}</div>
+    <div class="col-md-4 mb-2"><strong>Address:</strong> {{ client.client_address }}</div>
+  </div>
 </div>
 </div>
 
-<!-- PAYMENT TABLE -->
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fw-bold fs-5">{{ client_status.plan }}</div>
+      <div class="text-muted small">Plan</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fw-bold fs-5">₱{{ client_status.monthly_payment }}</div>
+      <div class="text-muted small">Monthly Payment</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fw-bold fs-5 text-success" id="stat-paid">₱{{ client_status.paid_balance }}</div>
+      <div class="text-muted small">Total Paid</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fw-bold fs-5 text-danger" id="stat-balance">₱{{ client_status.balance }}</div>
+      <div class="text-muted small">Remaining Balance</div>
+    </div>
+  </div>
+</div>
+
+<!-- Monthly payment table -->
 <div class="card shadow-sm">
 <div class="card-body">
-<div class="table-responsive">
-<table class="table table-hover align-middle" id="paymentTable">
-<thead class="table-dark">
-<tr>
-<th>Month</th>
-<th>Amount</th>
-<th>Status</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">
+      Monthly Schedule —
+      <span class="text-muted fs-6">{{ client_status.duration }} months total</span>
+    </h5>
+    <div>
+      <span class="me-2 text-muted small" id="stat-remaining">
+        {{ client_status.months_remaining }} month(s) remaining
+      </span>
+      <span class="badge {% if client_status.status %}bg-success{% else %}bg-secondary{% endif %}"
+            id="plan-status-badge">
+        {% if client_status.status %}Active{% else %}Completed{% endif %}
+      </span>
+    </div>
+  </div>
 
-
-
-<tr>
-<td></td>
-<td class="fw-semibold"></td>
-<td><span class="badge"></span></td>
-<td>
-<a href="" class="btn btn-sm btn-outline-success">Pay Now</a>
-</td>
-</tr>
-</tbody>
-
-</table>
+  <div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Month</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Date Paid</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for payment in payments %}
+      <tr class="{% if payment.is_paid %}paid-row{% else %}unpaid-row{% endif %}"
+          id="pay-row-{{ payment.pk }}">
+        <td>{{ forloop.counter }}</td>
+        <td>{{ payment.month|date:"F Y" }}</td>
+        <td>₱{{ payment.amount }}</td>
+        <td id="status-{{ payment.pk }}">
+          {% if payment.is_paid %}
+            <span class="badge bg-success">Paid</span>
+          {% else %}
+            <span class="badge bg-danger">Unpaid</span>
+          {% endif %}
+        </td>
+        <td id="datepaid-{{ payment.pk }}">
+          {% if payment.is_paid %}
+            {{ payment.date_paid|date:"M d, Y g:i A" }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td id="action-{{ payment.pk }}">
+          {% if payment.is_paid %}
+            <span class="text-success fw-semibold">✓ Paid</span>
+          {% else %}
+            <button class="btn btn-sm btn-success pay-btn"
+                    data-id="{{ payment.pk }}"
+                    data-month="{{ payment.month|date:'F Y' }}"
+                    data-amount="{{ payment.amount }}">
+              Pay Now
+            </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="text-center text-muted">No payment records found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
 </div>
 </div>
-</div>
+{% endblock %}
 
-</div>
-</div>
 
-<!-- MODAL -->
-<div class="modal fade" id="payModal" tabindex="-1">
+{% block modals %}
+<!-- PAY MODAL -->
+<div class="modal fade" id="payModal" tabindex="-1" aria-hidden="true">
 <div class="modal-dialog">
 <div class="modal-content">
-
-<div class="modal-header">
-<h5 class="modal-title">Confirm Payment</h5>
-<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-header">
+    <h5 class="modal-title">Confirm Payment</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p class="mb-1">You are paying for:</p>
+    <ul class="mb-3">
+      <li><strong>Month:</strong> <span id="modal-month"></span></li>
+      <li><strong>Amount:</strong> ₱<span id="modal-amount"></span></li>
+    </ul>
+    <label class="form-label">Enter PIN to confirm</label>
+    <input type="password" id="pinInput" class="form-control"
+           placeholder="Enter PIN" autocomplete="off">
+    <div id="pinError" class="text-danger small mt-2 d-none"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button class="btn btn-success" id="confirmPayBtn">Confirm Payment</button>
+  </div>
 </div>
-
-<div class="modal-body">
-<p>Enter PIN to confirm payment</p>
-<input type="password" id="paymentPin" class="form-control" placeholder="Enter PIN">
-<div id="pinError" class="text-danger small mt-2 d-none">Invalid PIN</div>
-</div>
-
-<div class="modal-footer">
-<button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-<button class="btn btn-success" id="confirmPayBtn">Confirm Payment</button>
-</div>
-
 </div>
 </div>
-</div>
+{% endblock %}
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+{% block extra_js %}
 <script>
+let selectedPaymentId = null;
+const payModal = new bootstrap.Modal(document.getElementById("payModal"));
 
-// Clock
-function updateClock(){
-const now = new Date();
-document.getElementById("date").textContent = now.toLocaleDateString();
-document.getElementById("time").textContent = now.toLocaleTimeString();
-}
-setInterval(updateClock,1000);
-updateClock();
-
-// Months Remaining
-function updateMonthsRemaining(){
-let pending = document.querySelectorAll("#paymentTable tbody tr span.bg-danger").length;
-document.getElementById("monthsRemaining").textContent = pending;
-}
-updateMonthsRemaining();
-
-// Modal logic
-let selectedRow = null;
-const correctPin = "1234";
-
-document.querySelectorAll('.pay-btn').forEach(btn => {
-btn.addEventListener('click', () => {
-selectedRow = btn.closest('tr');
-document.getElementById("paymentPin").value = "";
-document.getElementById("pinError").classList.add("d-none");
-
-const modal = new bootstrap.Modal(document.getElementById('payModal'));
-modal.show();
-});
+document.querySelectorAll(".pay-btn").forEach(btn => {
+  btn.addEventListener("click", function () {
+    selectedPaymentId = this.dataset.id;
+    document.getElementById("modal-month").textContent  = this.dataset.month;
+    document.getElementById("modal-amount").textContent = this.dataset.amount;
+    document.getElementById("pinInput").value           = "";
+    document.getElementById("pinError").classList.add("d-none");
+    const cb = document.getElementById("confirmPayBtn");
+    cb.disabled    = false;
+    cb.textContent = "Confirm Payment";
+    payModal.show();
+  });
 });
 
-document.getElementById("confirmPayBtn").addEventListener("click", () => {
+document.getElementById("confirmPayBtn").addEventListener("click", function () {
+  const pin   = document.getElementById("pinInput").value.trim();
+  const errEl = document.getElementById("pinError");
 
-const enteredPin = document.getElementById("paymentPin").value;
+  if (!pin) {
+    errEl.textContent = "Please enter your PIN.";
+    errEl.classList.remove("d-none");
+    return;
+  }
 
-if(enteredPin !== correctPin){
-document.getElementById("pinError").classList.remove("d-none");
-return;
-}
+  const btn = this;
+  btn.disabled    = true;
+  btn.textContent = "Processing…";
 
-const now = new Date();
-const formattedDate = now.toLocaleDateString();
-const formattedTime = now.toLocaleTimeString();
+  fetch(window.location.href, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-CSRFToken":  "{{ csrf_token }}",
+    },
+    body: `payment_id=${selectedPaymentId}&pin=${encodeURIComponent(pin)}`,
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById(`status-${selectedPaymentId}`).innerHTML =
+        '<span class="badge bg-success">Paid</span>';
+      document.getElementById(`datepaid-${selectedPaymentId}`).textContent = data.date_paid;
+      document.getElementById(`action-${selectedPaymentId}`).innerHTML =
+        '<span class="text-success fw-semibold">✓ Paid</span>';
+      const row = document.getElementById(`pay-row-${selectedPaymentId}`);
+      row.classList.replace("unpaid-row", "paid-row");
 
-const statusCell = selectedRow.cells[2].querySelector("span");
-statusCell.textContent = "Paid";
-statusCell.classList.remove("bg-danger");
-statusCell.classList.add("bg-success");
+      document.getElementById("stat-paid").textContent    = "₱" + data.paid_balance;
+      document.getElementById("stat-balance").textContent = "₱" + data.balance;
+      document.getElementById("stat-remaining").textContent =
+        data.months_remaining + " month(s) remaining";
 
-selectedRow.cells[3].textContent = `${formattedDate} ${formattedTime}`;
+      if (data.months_remaining === 0) {
+        const badge = document.getElementById("plan-status-badge");
+        badge.textContent = "Completed";
+        badge.classList.replace("bg-success", "bg-secondary");
+      }
 
-updateMonthsRemaining();
-
-bootstrap.Modal.getInstance(document.getElementById('payModal')).hide();
-
+      payModal.hide();
+    } else {
+      errEl.textContent = data.error || "Payment failed.";
+      errEl.classList.remove("d-none");
+      btn.disabled    = false;
+      btn.textContent = "Confirm Payment";
+    }
+  })
+  .catch(() => {
+    errEl.textContent = "Network error. Please try again.";
+    errEl.classList.remove("d-none");
+    btn.disabled    = false;
+    btn.textContent = "Confirm Payment";
+  });
 });
-
 </script>
-
-</body>
-</html>
+{% endblock %}
