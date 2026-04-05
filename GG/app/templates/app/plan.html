@@ -1,0 +1,123 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Plan Management — Green Garden{% endblock %}
+{% block nav_plan %}active{% endblock %}
+
+  {% block content %}
+    <div class="content">
+      <h4 class="mb-4">Plan Management</h4>
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+          <h5 class="mb-3">Create Plan</h5>
+          <form>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Plan Name</label>
+                <select class="form-select">
+                  <option>Plan A</option>
+                  <option>Plan B</option>
+                  <option>Plan C</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Price</label>
+                <input type="number" class="form-control">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label">Duration</label>
+                <select class="form-select">
+                  <option value="">Select Duration</option>
+                  <option value="12">12 Months</option>
+                  <option value="24">24 Months</option>
+                  <option value="36">36 Months</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Lot Number</label>
+                <input type="text" class="form-control" placeholder="e.g. A-101">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Status</label>
+                <select class="form-select">
+                  <option>Available</option>
+                  <option>Sold</option>
+                </select>
+              </div>
+              <div class="col-12">
+                <button class="btn btn-success px-4">Save Plan</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <!-- no crrent plans lang if wala pa -->
+          <h5 class="mb-3">Current Plan</h5>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Plan</th>
+                <th>Lot</th>
+                <th>Price</th>
+                <th>Duration</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Plan A</td>
+                <td>A-101</td>
+                <td>50000</td>
+                <td>12 Months</td>
+                <td><span class="badge bg-success">Active</span></td>
+              </tr>
+              <tr>
+                <td>Plan B</td>
+                <td>A-102</td>
+                <td>70000</td>
+                <td>24 Months</td>
+                <td><span class="badge bg-danger">Paid</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h5 class="mb-3">Lot Availability</h5>
+          <div class="d-flex flex-wrap gap-2">
+            <div class="lot-box available">A1</div>
+            <div class="lot-box sold">A2</div>
+            <div class="lot-box available">A3</div>
+            <div class="lot-box sold">A4</div>
+            <div class="lot-box available">A5</div>
+            <div class="lot-box sold">B1</div>
+            <div class="lot-box available">B2</div>
+            <div class="lot-box available">B3</div>
+            <div class="lot-box sold">B4</div>
+            <div class="lot-box available">B5</div>
+          </div>
+          <div class="mt-3">
+            <span class="badge bg-success">Available</span>
+            <span class="badge bg-danger">Sold</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endblock %}
+
+  {% block extra_js %}
+    <script>
+      function updateClock() {
+        const now = new Date();
+        document.getElementById("date").textContent = now.toLocaleDateString();
+        document.getElementById("time").textContent = now.toLocaleTimeString();
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+    </script>
+  {% endblock %}
+</body>
+</html>
+
