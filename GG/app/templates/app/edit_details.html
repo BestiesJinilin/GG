@@ -1,283 +1,251 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Edit Client</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+{% extends 'app/base.html' %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/homepage.css' %}">
+
+{% block title %}Edit Client — Green Garden{% endblock %}
+{% block nav_records %}active{% endblock %}
+
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/addclient.css' %}">
+{% endblock %}
 
-</head>
-
-<body>
-
-<!-- TOP NAVBAR -->
-<nav class="navbar navbar-dark topbar px-4">
-<a class="navbar-brand d-flex align-items-center" href="#">
-<img src="{% static 'img/landing/logo.png' %}" height="35" class="me-2">
-<span class="fw-bold text-white">Green garden</span>
-</a>
-
-<div class="ms-auto d-flex align-items-center">
-<div class="me-4 text-end text-white">
-<div id="date" class="small"></div>
-<div id="time" class="fw-bold"></div>
-</div>
-<span class="admin-box">{{ user.username.title }}</span>
-<a href="{% url 'logout' %}" class="btn btn-danger px-4 ms-2">Logout</a>
-</div>
-</nav>
-
-<div class="d-flex">
-
-<!-- SIDEBAR -->
-<div class="sidebar">
-<ul class="nav flex-column">
-<li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Dashboard</a></li>
-<li class="nav-item"><a class="nav-link" href="{% url 'add-client' %}">Add Client</a></li>
-<li class="nav-item"><a class="nav-link" href="{% url 'homepage' %}">Available Plans</a></li>
-<li class="nav-item active"><a class="nav-link" href="{% url 'records' %}">Client Records</a></li>
-</ul>
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="content">
-
+{% block content %}
 <h3 class="mb-4">Edit Client</h3>
 
-<form method="POST" action="{% url 'edit-details' client.pk %}">
-    {% csrf_token %}
+{% if form.non_field_errors %}
+<div class="alert alert-danger">
+  {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+</div>
+{% endif %}
 
-  <!-- PERSONAL -->
+<form method="POST" action="{% url 'edit-details' client.pk %}">
+{% csrf_token %}
+
+  <!-- PERSONAL INFORMATION -->
   <div class="form-section">
   <h5 class="mb-3">Personal Information</h5>
 
   <div class="row mb-3">
-  <div class="col-md-4">
-  <label>First Name</label>
-  {{ form.client_first_name }}
-  </div>
-
-  <div class="col-md-4">
-  <label>Middle Name</label>
-  {{ form.client_middle_name }}
-  </div>
-
-  <div class="col-md-4">
-  <label>Last Name</label>
-  {{ form.client_last_name }}
-  </div>
-  </div>
-
-  <div class="row mb-3">
-  <div class="col-md-6">
-  <label>Home Address</label>
-  {{ form.client_address }}
-  </div>
-
-  <div class="col-md-3">
-  <label>Contact Number</label>
-  {{ form.client_contact_number }}
-  </div>
-
-  <div class="col-md-3">
-  <label>Civil Status</label>
-  {{ form.client_civil_status }}
-  </div>
+    <div class="col-md-4">
+      <label>First Name <span class="text-danger">*</span></label>
+      {{ form.client_first_name }}
+      {% if form.client_first_name.errors %}<div class="text-danger small">{{ form.client_first_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4">
+      <label>Middle Name</label>
+      {{ form.client_middle_name }}
+      {% if form.client_middle_name.errors %}<div class="text-danger small">{{ form.client_middle_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4">
+      <label>Last Name <span class="text-danger">*</span></label>
+      {{ form.client_last_name }}
+      {% if form.client_last_name.errors %}<div class="text-danger small">{{ form.client_last_name.errors.0 }}</div>{% endif %}
+    </div>
   </div>
 
   <div class="row mb-3">
-  <div class="col-md-3">
-  <label>Date of Birth</label>
-  {{ form.client_date_birth }}
+    <div class="col-md-6">
+      <label>Home Address <span class="text-danger">*</span></label>
+      {{ form.client_address }}
+      {% if form.client_address.errors %}<div class="text-danger small">{{ form.client_address.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Contact Number <span class="text-danger">*</span></label>
+      {{ form.client_contact_number }}
+      {% if form.client_contact_number.errors %}<div class="text-danger small">{{ form.client_contact_number.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Civil Status <span class="text-danger">*</span></label>
+      {{ form.client_civil_status }}
+      {% if form.client_civil_status.errors %}<div class="text-danger small">{{ form.client_civil_status.errors.0 }}</div>{% endif %}
+    </div>
   </div>
 
-  <div class="col-md-3">
-  <label>Religion</label>
-  {{ form.client_religion }}
-  </div>
-
-  <div class="col-md-3">
-  <label>Occupation</label>
-  {{ form.client_occupation }}
-  </div>
-
-  <div class="col-md-3">
-  <label>Employer Name</label>
-  {{ form.client_employer_name }}
-  </div>
+  <div class="row mb-3">
+    <div class="col-md-3">
+      <label>Date of Birth <span class="text-danger">*</span></label>
+      {{ form.client_date_birth }}
+      {% if form.client_date_birth.errors %}<div class="text-danger small">{{ form.client_date_birth.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Religion <span class="text-danger">*</span></label>
+      {{ form.client_religion }}
+      {% if form.client_religion.errors %}<div class="text-danger small">{{ form.client_religion.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Occupation <span class="text-danger">*</span></label>
+      {{ form.client_occupation }}
+      {% if form.client_occupation.errors %}<div class="text-danger small">{{ form.client_occupation.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Employer Name <span class="text-danger">*</span></label>
+      {{ form.client_employer_name }}
+      {% if form.client_employer_name.errors %}<div class="text-danger small">{{ form.client_employer_name.errors.0 }}</div>{% endif %}
+    </div>
   </div>
 
   <div class="mb-3">
-  <label>Employer Address</label>
-  {{ form.client_employer_address }}
+    <label>Employer Address <span class="text-danger">*</span></label>
+    {{ form.client_employer_address }}
+    {% if form.client_employer_address.errors %}<div class="text-danger small">{{ form.client_employer_address.errors.0 }}</div>{% endif %}
   </div>
   </div>
 
-  <!-- SPOUSE -->
+  <!-- SPOUSE INFORMATION -->
   <div class="form-section">
   <h5 class="mb-3">Spouse Information</h5>
-
   <div class="row mb-3">
-  <div class="col-md-4">
-  {{ form.client_spouse_name }}
-  </div>
-  <div class="col-md-3">
-  {{ form.client_spouse_date_birth }}
-  </div>
-  <div class="col-md-3">
-  {{ form.client_spouse_occupation }}
-  </div>
-  <div class="col-md-2">
-  {{ form.client_spouse_employer }}
-  </div>
+    <div class="col-md-4">
+      <label>Name of Spouse</label>
+      {{ form.client_spouse_name }}
+      {% if form.client_spouse_name.errors %}<div class="text-danger small">{{ form.client_spouse_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Date of Birth</label>
+      {{ form.client_spouse_date_birth }}
+      {% if form.client_spouse_date_birth.errors %}<div class="text-danger small">{{ form.client_spouse_date_birth.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Occupation</label>
+      {{ form.client_spouse_occupation }}
+      {% if form.client_spouse_occupation.errors %}<div class="text-danger small">{{ form.client_spouse_occupation.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-2">
+      <label>Employer</label>
+      {{ form.client_spouse_employer }}
+      {% if form.client_spouse_employer.errors %}<div class="text-danger small">{{ form.client_spouse_employer.errors.0 }}</div>{% endif %}
+    </div>
   </div>
   </div>
 
-  <!-- ID -->
+  <!-- GOVERNMENT ID -->
   <div class="form-section">
   <h5 class="mb-3">Government ID</h5>
-
   <div class="row mb-3">
-  <div class="col-md-3">
-  {{ form.client_id_type }}
-  </div>
-  <div class="col-md-3">
-  {{ form.client_id_number }}
-  </div>
-  <div class="col-md-3">
-  {{ form.client_date_issued }}
-  </div>
-  <div class="col-md-3">
-  {{ form.client_place_issued }}
-  </div>
+    <div class="col-md-3">
+      <label>ID Type <span class="text-danger">*</span></label>
+      {{ form.client_id_type }}
+      {% if form.client_id_type.errors %}<div class="text-danger small">{{ form.client_id_type.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>ID Number <span class="text-danger">*</span></label>
+      {{ form.client_id_number }}
+      {% if form.client_id_number.errors %}<div class="text-danger small">{{ form.client_id_number.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Date Issued <span class="text-danger">*</span></label>
+      {{ form.client_date_issued }}
+      {% if form.client_date_issued.errors %}<div class="text-danger small">{{ form.client_date_issued.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Place Issued <span class="text-danger">*</span></label>
+      {{ form.client_place_issued }}
+      {% if form.client_place_issued.errors %}<div class="text-danger small">{{ form.client_place_issued.errors.0 }}</div>{% endif %}
+    </div>
   </div>
   </div>
 
   <!-- BENEFICIARIES -->
   <div class="form-section mb-4">
   <h5 class="mb-3">Beneficiaries</h5>
+
   {{ beneficiary_formset.management_form }}
-  <div id="beneficiaries-wrapper">
 
-    <!-- TEMPLATE ROW (hidden) -->
-    <div class="row mb-2 beneficiary-row template-row" style="display:none;">
-      <div class="col-md-5">
-        <input type="text" name="name" class="form-control" placeholder="Beneficiary Name">
-      </div>
-      <div class="col-md-5">
-        <input type="text" name="relationship" class="form-control" placeholder="Relationship">
-      </div>
-      <div class="col-md-2">
-        <button type="button" class="btn btn-sm btn-danger remove-btn">Delete</button>
-      </div>
+  {% if beneficiary_formset.non_form_errors %}
+    <div class="alert alert-danger">
+      {% for error in beneficiary_formset.non_form_errors %}<div>{{ error }}</div>{% endfor %}
     </div>
+  {% endif %}
 
-    <!-- EXISTING FORMSET ROWS -->
-    {% for form in beneficiary_formset %}
-    <div class="row mb-2 beneficiary-row">
+  <div id="beneficiaries-wrapper">
+    {% for bform in beneficiary_formset %}
+    <div class="row mb-2 beneficiary-row align-items-start">
+      {% for hidden in bform.hidden_fields %}{{ hidden }}{% endfor %}
       <div class="col-md-5">
-        {{ form.name }}
+        <label class="form-label small">Name</label>
+        {{ bform.name }}
+        {% if bform.name.errors %}<div class="text-danger small">{{ bform.name.errors.0 }}</div>{% endif %}
       </div>
       <div class="col-md-5">
-        {{ form.relationship }} 
+        <label class="form-label small">Relationship</label>
+        {{ bform.relationship }}
+        {% if bform.relationship.errors %}<div class="text-danger small">{{ bform.relationship.errors.0 }}</div>{% endif %}
       </div>
-      <div class="col-md-2">
-        <button type="button" class="btn btn-sm btn-danger remove-btn" style="display:none;">Delete</button>
+      <div class="col-md-2 d-flex flex-column justify-content-end">
+        <label class="form-label small invisible">Del</label>
+        <div>
+          {{ bform.DELETE }}
+          <label for="{{ bform.DELETE.id_for_label }}" class="btn btn-sm btn-danger mb-0">Delete</label>
+        </div>
       </div>
     </div>
     {% endfor %}
   </div>
 
   <button type="button" id="add-beneficiary" class="btn btn-secondary mt-2">Add Beneficiary</button>
-</div>
+  </div>
+
+  <template id="beneficiary-template">
+    <div class="row mb-2 beneficiary-row align-items-start">
+      <div class="col-md-5">
+        <label class="form-label small">Name</label>
+        {{ beneficiary_formset.empty_form.name }}
+      </div>
+      <div class="col-md-5">
+        <label class="form-label small">Relationship</label>
+        {{ beneficiary_formset.empty_form.relationship }}
+      </div>
+      <div class="col-md-2 d-flex flex-column justify-content-end">
+        <label class="form-label small invisible">Del</label>
+        <button type="button" class="btn btn-sm btn-danger remove-btn">Remove</button>
+      </div>
+    </div>
+  </template>
 
   <div class="text-end mt-4">
-    <a href="{% url 'records' %}"><button type="button" class="btn btn-secondary px-4">Cancel</button></a>
+    <a href="{% url 'records' %}" class="btn btn-secondary px-4">Cancel</a>
     <button type="submit" class="btn btn-primary px-4">Update Client</button>
   </div>
 
-
 </form>
+{% endblock %}
 
-</div>
-</div>
 
+{% block extra_js %}
 <script>
-// Clock
-function updateClock(){
-const now = new Date();
-document.getElementById("date").textContent = now.toLocaleDateString();
-document.getElementById("time").textContent = now.toLocaleTimeString();
-}
-setInterval(updateClock,1000);
-updateClock();
-
-// Add Beneficiary
-const wrapper = document.getElementById("beneficiaries-wrapper");
-const templateRow = wrapper.querySelector(".template-row");
-
-function updateDeleteButtons() {
-  const rows = wrapper.querySelectorAll(".beneficiary-row:not(.template-row)");
-  rows.forEach((row, index) => {
-    const inputs = row.querySelectorAll("input[type='text']");
-    const hasValue = Array.from(inputs).some(input => input.value.trim() !== "");
-
-    if (index === 0) {
-      row.querySelector(".remove-btn").style.display = hasValue ? "inline-block" : "none";
+// Hide raw DELETE checkboxes; styled label acts as toggle
+document.querySelectorAll('.beneficiary-row input[type="checkbox"]').forEach(cb => {
+  cb.style.display = "none";
+  cb.addEventListener("change", function () {
+    const row   = this.closest(".beneficiary-row");
+    const label = row.querySelector("label.btn-danger");
+    if (this.checked) {
+      row.classList.add("opacity-50");
+      if (label) label.textContent = "Undo";
     } else {
-      row.querySelector(".remove-btn").style.display = "inline-block";
+      row.classList.remove("opacity-50");
+      if (label) label.textContent = "Delete";
     }
   });
-}
-
-// Run on page load
-updateDeleteButtons();
-
-// Run whenever an input changes
-wrapper.addEventListener("input", updateDeleteButtons);
-
-// Add Beneficiary
-document.getElementById("add-beneficiary").addEventListener("click", function() {
-  const totalForms = document.getElementById("id_beneficiaries-TOTAL_FORMS");
-  let currentCount = parseInt(totalForms.value);
-
-  // Clone the template
-  const newForm = templateRow.cloneNode(true);
-  newForm.classList.remove("template-row");
-  newForm.style.display = "flex"; // show the cloned row
-
-  // Update input names to match Django formset convention
-  newForm.querySelectorAll("input").forEach(input => {
-    const name = input.name;
-    input.name = `beneficiaries-${currentCount}-${name}`;
-    input.value = "";
-  });
-
-  wrapper.appendChild(newForm);
-  totalForms.value = currentCount + 1;
-
-  updateDeleteButtons();
 });
 
-// Remove Beneficiary
-wrapper.addEventListener("click", function(e) {
-  if (e.target.classList.contains("remove-btn")) {
-    const row = e.target.closest(".beneficiary-row");
-    row.remove();
+// Add new beneficiary row
+document.getElementById("add-beneficiary").addEventListener("click", function () {
+  const wrapper    = document.getElementById("beneficiaries-wrapper");
+  const totalForms = document.getElementById("id_beneficiaries-TOTAL_FORMS");
+  const count      = parseInt(totalForms.value);
+  const html       = document.getElementById("beneficiary-template").innerHTML
+                       .replace(/__prefix__/g, count);
+  wrapper.insertAdjacentHTML("beforeend", html);
+  totalForms.value = count + 1;
+});
 
+// Remove newly-added rows
+document.getElementById("beneficiaries-wrapper").addEventListener("click", function (e) {
+  if (e.target.classList.contains("remove-btn")) {
+    e.target.closest(".beneficiary-row").remove();
     const totalForms = document.getElementById("id_beneficiaries-TOTAL_FORMS");
     totalForms.value = parseInt(totalForms.value) - 1;
-
-    updateDeleteButtons();
   }
 });
 </script>
-
-</body>
-</html>
+{% endblock %}
