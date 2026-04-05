@@ -1,173 +1,216 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>View Client</title>
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+{% extends 'app/base.html' %}
 {% load static %}
-<link rel="stylesheet" href="{% static 'css/homepage.css' %}">
 
-</head>
+{% block title %}Add Client — Green Garden{% endblock %}
+{% block nav_add_client %}active{% endblock %}
 
-<body>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/addclient.css' %}">
+{% endblock %}
 
-<!-- TOP NAVBAR -->
-<nav class="navbar navbar-dark topbar px-4">
+{% block content %}
+<h3 class="mb-4">Client Registration</h3>
 
-<a class="navbar-brand d-flex align-items-center" href="#">
-<img src="{% static 'img/landing/logo.png' %}" height="35" class="me-2">
-<span class="fw-bold text-white">Green garden</span>
-</a>
+{% if form.non_field_errors %}
+  <div class="alert alert-danger">
+    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+  </div>
+{% endif %}
 
-<div class="ms-auto d-flex align-items-center">
+<form method="POST" action="{% url 'add-client' %}">
+{% csrf_token %}
 
-<div class="me-4 text-end text-white">
-<div id="date" class="small"></div>
-<div id="time" class="fw-bold"></div>
-</div>
+  <!-- PERSONAL INFORMATION -->
+  <div class="form-section">
+  <h5 class="mb-3">Personal Information</h5>
 
-<span class="admin-box">{{ user.username.title }}</span>
-<a href="{% url 'logout' %}" class="btn btn-danger px-4 ms-2">Logout</a>
-
-</div>
-
-</nav>
-
-<div class="d-flex">
-
-<!-- SIDEBAR -->
-<div class="sidebar">
-
-<ul class="nav flex-column">
-
-<li class="nav-item">
-<a class="nav-link" href="{% url 'homepage' %}">Dashboard</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="{% url 'add-client' %}">Add Client</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link" href="{% url 'homepage' %}">Available Plans</a>
-</li>
-
-<li class="nav-item">
-<a class="nav-link active" href="{% url 'records' %}">Client Records</a>
-</li>
-
-
-
-</ul>
-
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="content">
-
-<h3 class="mb-4">Client Profile</h3>
-
-<div class="card shadow-sm mb-4">
-<div class="card-body">
-
-<h5 class="mb-3">Personal Information</h5>
-
-<div class="row">
-<div class="col-md-4"><strong>First Name:</strong> {{ client.client_first_name }}</div>
-<div class="col-md-4"><strong>Middle Name:</strong> {{client.client_middle_name}} </div>
-<div class="col-md-4"><strong>Last Name:</strong> {{ client.client_last_name }}</div>
-</div>
-
-<div class="row mt-2">
-<div class="col-md-6"><strong>Address:</strong> {{ client.client_address }}</div>
-<div class="col-md-3"><strong>Contact:</strong> {{ client.client_contact_number }}</div>
-<div class="col-md-3"><strong>Status:</strong> {{ client.client_civil_status }}</div>
-</div>
-
-<div class="row mt-2">
-<div class="col-md-3"><strong>Birthdate:</strong> {{ client.client_date_birth }}</div>
-<div class="col-md-3"><strong>Religion:</strong> {{ client.client_religion }}</div>
-<div class="col-md-3"><strong>Occupation:</strong> {{ client.client_occupation }}</div>
-<div class="col-md-3"><strong>Employer:</strong> {{ client.client_employer_name }}</div>
-</div>
-
-<div class="mt-2">
-<strong>Employer Address:</strong> {{ client.client_employer_address }}
-</div>
-
-</div>
-</div>
-
-<div class="card shadow-sm mb-4">
-<div class="card-body">
-
-<h5 class="mb-3">Spouse Information</h5>
-
-<div class="row">
-<div class="col-md-4"><strong>Name:</strong> {{ client.client_spouse_name }}</div>
-<div class="col-md-3"><strong>Birthdate:</strong> {{ client.client_spouse_date_birth }}</div>
-<div class="col-md-3"><strong>Occupation:</strong> {{client.client_spouse_occupation }}</div>
-<div class="col-md-2"><strong>Employer:</strong> {{ client.client_spouse_employer }}</div>
-</div>
-
-</div>
-</div>
-
-<div class="card shadow-sm mb-4">
-<div class="card-body">
-
-<h5 class="mb-3">Government ID</h5>
-
-<div class="row">
-<div class="col-md-3"><strong>Type:</strong> {{ client.client_id_type }}</div>
-<div class="col-md-3"><strong>Number:</strong> {{ client.client_id_number }}</div>
-<div class="col-md-3"><strong>Date Issued:</strong> {{ client.client_date_issued }}</div>
-<div class="col-md-3"><strong>Place:</strong> {{ client.client_place_issued }}</div>
-</div>
-
-</div>
-</div>
-
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-    <h5 class="mb-3">Beneficiaries</h5>
-        {% if client.beneficiaries.all %}
-            <ul class="list-group">
-                {% for beneficiary in client.beneficiaries.all %}
-                    <li class="list-group-item">{{ beneficiary.name }} - {{ beneficiary.relationship }}</li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>No beneficiaries added.</p>
-        {% endif %}
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <label>First Name <span class="text-danger">*</span></label>
+      {{ form.client_first_name }}
+      {% if form.client_first_name.errors %}<div class="text-danger small">{{ form.client_first_name.errors.0 }}</div>{% endif %}
     </div>
-</div>
+    <div class="col-md-4">
+      <label>Middle Name</label>
+      {{ form.client_middle_name }}
+      {% if form.client_middle_name.errors %}<div class="text-danger small">{{ form.client_middle_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4">
+      <label>Last Name <span class="text-danger">*</span></label>
+      {{ form.client_last_name }}
+      {% if form.client_last_name.errors %}<div class="text-danger small">{{ form.client_last_name.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
 
-<div class="text-end">
-<a href="{% url 'edit-details' client.pk %}" class="btn btn-warning">Edit Client</a>
-<a href="{% url 'records' %}" class="btn btn-secondary">Back</a>
-</div>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label>Home Address <span class="text-danger">*</span></label>
+      {{ form.client_address }}
+      {% if form.client_address.errors %}<div class="text-danger small">{{ form.client_address.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Contact Number <span class="text-danger">*</span></label>
+      {{ form.client_contact_number }}
+      {% if form.client_contact_number.errors %}<div class="text-danger small">{{ form.client_contact_number.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Civil Status <span class="text-danger">*</span></label>
+      {{ form.client_civil_status }}
+      {% if form.client_civil_status.errors %}<div class="text-danger small">{{ form.client_civil_status.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
 
-</div>
+  <div class="row mb-3">
+    <div class="col-md-3">
+      <label>Date of Birth <span class="text-danger">*</span></label>
+      {{ form.client_date_birth }}
+      {% if form.client_date_birth.errors %}<div class="text-danger small">{{ form.client_date_birth.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Religion <span class="text-danger">*</span></label>
+      {{ form.client_religion }}
+      {% if form.client_religion.errors %}<div class="text-danger small">{{ form.client_religion.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Occupation <span class="text-danger">*</span></label>
+      {{ form.client_occupation }}
+      {% if form.client_occupation.errors %}<div class="text-danger small">{{ form.client_occupation.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Employer Name <span class="text-danger">*</span></label>
+      {{ form.client_employer_name }}
+      {% if form.client_employer_name.errors %}<div class="text-danger small">{{ form.client_employer_name.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
 
-</div>
+  <div class="mb-3">
+    <label>Employer Address <span class="text-danger">*</span></label>
+    {{ form.client_employer_address }}
+    {% if form.client_employer_address.errors %}<div class="text-danger small">{{ form.client_employer_address.errors.0 }}</div>{% endif %}
+  </div>
+  </div>
 
+  <!-- SPOUSE INFORMATION -->
+  <div class="form-section">
+  <h5 class="mb-3">Spouse Information</h5>
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <label>Name of Spouse</label>
+      {{ form.client_spouse_name }}
+      {% if form.client_spouse_name.errors %}<div class="text-danger small">{{ form.client_spouse_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Date of Birth</label>
+      {{ form.client_spouse_date_birth }}
+      {% if form.client_spouse_date_birth.errors %}<div class="text-danger small">{{ form.client_spouse_date_birth.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Occupation</label>
+      {{ form.client_spouse_occupation }}
+      {% if form.client_spouse_occupation.errors %}<div class="text-danger small">{{ form.client_spouse_occupation.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-2">
+      <label>Employer</label>
+      {{ form.client_spouse_employer }}
+      {% if form.client_spouse_employer.errors %}<div class="text-danger small">{{ form.client_spouse_employer.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  </div>
+
+  <!-- GOVERNMENT ID -->
+  <div class="form-section">
+  <h5 class="mb-3">Government Issued ID</h5>
+  <div class="row mb-3">
+    <div class="col-md-3">
+      <label>ID Type <span class="text-danger">*</span></label>
+      {{ form.client_id_type }}
+      {% if form.client_id_type.errors %}<div class="text-danger small">{{ form.client_id_type.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>ID Number <span class="text-danger">*</span></label>
+      {{ form.client_id_number }}
+      {% if form.client_id_number.errors %}<div class="text-danger small">{{ form.client_id_number.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Date Issued <span class="text-danger">*</span></label>
+      {{ form.client_date_issued }}
+      {% if form.client_date_issued.errors %}<div class="text-danger small">{{ form.client_date_issued.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Place Issued <span class="text-danger">*</span></label>
+      {{ form.client_place_issued }}
+      {% if form.client_place_issued.errors %}<div class="text-danger small">{{ form.client_place_issued.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  </div>
+
+  <!-- BENEFICIARIES -->
+  <div class="form-section">
+  <h5 class="mb-3">Beneficiaries</h5>
+
+  {{ beneficiary_formset.management_form }}
+
+  <div id="beneficiaries-wrapper">
+    {% for bform in beneficiary_formset %}
+    <div class="row mb-2 beneficiary-row">
+      <div class="col-md-5">
+        {{ bform.name }}
+        {% if bform.name.errors %}<div class="text-danger small">{{ bform.name.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-md-5">
+        {{ bform.relationship }}
+        {% if bform.relationship.errors %}<div class="text-danger small">{{ bform.relationship.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-md-2 d-flex align-items-start">
+        <button type="button" class="btn btn-danger remove-btn">Remove</button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if beneficiary_formset.non_form_errors %}
+    <div class="alert alert-danger mt-2">
+      {% for error in beneficiary_formset.non_form_errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <button type="button" id="add-beneficiary" class="btn btn-secondary mb-3">Add Beneficiary</button>
+  </div>
+
+  <div class="text-end mb-5">
+    <button type="submit" class="btn btn-success px-4">Save Client</button>
+  </div>
+
+</form>
+
+<template id="beneficiary-template">
+  <div class="row mb-2 beneficiary-row">
+    <div class="col-md-5">{{ beneficiary_formset.empty_form.name }}</div>
+    <div class="col-md-5">{{ beneficiary_formset.empty_form.relationship }}</div>
+    <div class="col-md-2 d-flex align-items-start">
+      <button type="button" class="btn btn-danger remove-btn">Remove</button>
+    </div>
+  </div>
+</template>
+{% endblock %}
+
+
+{% block extra_js %}
 <script>
+document.getElementById("add-beneficiary").addEventListener("click", function () {
+  const wrapper    = document.getElementById("beneficiaries-wrapper");
+  const totalForms = document.getElementById("id_beneficiaries-TOTAL_FORMS");
+  const count      = parseInt(totalForms.value);
+  const html       = document.getElementById("beneficiary-template").innerHTML
+                       .replace(/__prefix__/g, count);
+  wrapper.insertAdjacentHTML("beforeend", html);
+  totalForms.value = count + 1;
+});
 
-function updateClock(){
-const now = new Date();
-document.getElementById("date").textContent = now.toLocaleDateString();
-document.getElementById("time").textContent = now.toLocaleTimeString();
-}
-
-setInterval(updateClock,1000);
-updateClock();
-
+document.addEventListener("click", function (e) {
+  if (e.target.classList.contains("remove-btn")) {
+    e.target.closest(".beneficiary-row")?.remove();
+  }
+});
 </script>
-
-</body>
-</html>
+{% endblock %}
