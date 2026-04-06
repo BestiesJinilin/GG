@@ -3,114 +3,146 @@
 {% block title %}Plan Management — Green Garden{% endblock %}
 {% block nav_records %}active{% endblock %}
 
-  {% block content %}
-    <div class="content">
-      <h4 class="mb-4">Plan Management</h4>
-        <div class="card shadow-sm border-0 mb-4">
-          <div class="card-body">
-            <h5 class="mb-3">Create Plan</h5>
-            <form method="POST" action="{% url 'plan' client.pk %}">
-              {% csrf_token %}
-              <div class="row">
-                <div class="col-md-4 mb-3">
-                  <label class="form-label">Plans</label>
-                  {{ form.plan }}
-                </div>
-                <div class="col-md-4 mb-3">
-                  <label class="form-label">Monthly Payment</label>
-                  {{ form.monthly_payment }}
-                </div>
-                <div class="col-md-4 mb-3">
-                  <label class="form-label">Duration</label>
-                  {{ form.duration }}
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Lot Number</label>
-                  <input type="text" class="form-control" placeholder="e.g. A-101">
-                </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label">Status</label>
-                  <select class="form-select">
-                    <option>Available</option>
-                    <option>Sold</option>
-                  </select>
-                </div>
-                <div class="col-12">
-                  <button class="btn btn-success px-4">Save Plan</button>
-                </div>
-              </div>
-            </form>
-          </div>
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Plan Management</h4>
+  <a href="{% url 'records' %}" class="btn btn-secondary btn-sm">← Back to Records</a>
+</div>
+
+<!-- Client quick info -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h6 class="text-muted mb-1">Client</h6>
+    <h5 class="mb-0">{{ client.full_name }}</h5>
+    <small class="text-muted">ID #{{ client.pk }} · {{ client.client_contact_number }}</small>
+  </div>
+</div>
+
+{% if form.non_field_errors %}
+  <div class="alert alert-danger">
+    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+  </div>
+{% endif %}
+
+<!-- Create / Update Plan -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h5 class="mb-3">Create Plan</h5>
+    <form method="POST" action="{% url 'plan' client.pk %}">
+      {% csrf_token %}
+      <div class="row">
+
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Plans</label>
+          {{ form.plan }}
+          {% if form.plan.errors %}
+            <div class="text-danger small mt-1">{{ form.plan.errors.0 }}</div>
+          {% endif %}
         </div>
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <!-- no crrent plans lang if wala pa -->
-          <h5 class="mb-3">Current Plan</h5>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Plan</th>
-                <th>Lot</th>
-                <th>Monthly Payment</th>
-                <th>Duration</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for data in plans %}
-                <tr>
-                  <td>{{ data.plan }}</td>
-                  <td>A-101</td>
-                  <td>{{ data.monthly_payment }}</td>
-                  <td>{{ data.duration }} Months</td>
-                  {% if data.plan == "No Plan" %}
-                    <td><span class="badge bg-warning text-dark">Inactive</span></td>
-                  {% elif data.status %}
-                    <td><span class="badge bg-success">Active</span></td>
-                  {% else %}
-                    <td><span class="badge bg-danger">Paid</span></td>
-                  {% endif %}
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
+
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Monthly Payment</label>
+          {{ form.monthly_payment }}
+          {% if form.monthly_payment.errors %}
+            <div class="text-danger small mt-1">{{ form.monthly_payment.errors.0 }}</div>
+          {% endif %}
         </div>
+
+        <div class="col-md-4 mb-3">
+          <label class="form-label">Duration</label>
+          {{ form.duration }}
+          {% if form.duration.errors %}
+            <div class="text-danger small mt-1">{{ form.duration.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Lot Number</label>
+          <input type="text" class="form-control" placeholder="e.g. A-101" disabled>
+          <small class="text-muted">Coming soon</small>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label class="form-label">Status</label>
+          <select class="form-select" disabled>
+            <option>Available</option>
+            <option>Sold</option>
+          </select>
+          <small class="text-muted">Coming soon</small>
+        </div>
+
+        <div class="col-12">
+          <button class="btn btn-success px-4">Save Plan</button>
+        </div>
+
       </div>
-      <div class="card shadow-sm border-0">
-        <div class="card-body">
-          <h5 class="mb-3">Lot Availability</h5>
-          <div class="d-flex flex-wrap gap-2">
-            <div class="lot-box available">A1</div>
-            <div class="lot-box sold">A2</div>
-            <div class="lot-box available">A3</div>
-            <div class="lot-box sold">A4</div>
-            <div class="lot-box available">A5</div>
-            <div class="lot-box sold">B1</div>
-            <div class="lot-box available">B2</div>
-            <div class="lot-box available">B3</div>
-            <div class="lot-box sold">B4</div>
-            <div class="lot-box available">B5</div>
-          </div>
-          <div class="mt-3">
-            <span class="badge bg-success">Available</span>
-            <span class="badge bg-danger">Sold</span>
-          </div>
-        </div>
-      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Current Plan table -->
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body">
+    <h5 class="mb-3">Current Plan</h5>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Plan</th>
+          <th>Lot</th>
+          <th>Monthly Payment</th>
+          <th>Duration</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for data in plans %}
+          <tr>
+            <td>{{ data.plan }}</td>
+            <td><span class="text-muted">—</span></td>
+            <td>₱{{ data.monthly_payment }}</td>
+            <td>{{ data.duration }} Months</td>
+            <td>
+              {% if data.plan == "No Plan" %}
+                <span class="badge bg-warning text-dark">Inactive</span>
+              {% elif data.status %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-secondary">Completed</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted">No plan assigned yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Lot Availability -->
+<div class="card shadow-sm border-0">
+  <div class="card-body">
+    <h5 class="mb-3">Lot Availability</h5>
+    <div class="d-flex flex-wrap gap-2">
+      <div class="lot-box available">A1</div>
+      <div class="lot-box sold">A2</div>
+      <div class="lot-box available">A3</div>
+      <div class="lot-box sold">A4</div>
+      <div class="lot-box available">A5</div>
+      <div class="lot-box sold">B1</div>
+      <div class="lot-box available">B2</div>
+      <div class="lot-box available">B3</div>
+      <div class="lot-box sold">B4</div>
+      <div class="lot-box available">B5</div>
     </div>
-  {% endblock %}
+    <div class="mt-3">
+      <span class="badge bg-success">Available</span>
+      <span class="badge bg-danger">Sold</span>
+    </div>
+    <small class="text-muted d-block mt-2">Lot assignment coming soon.</small>
+  </div>
+</div>
 
-  {% block extra_js %}
-    <script>
-      function updateClock() {
-        const now = new Date();
-        document.getElementById("date").textContent = now.toLocaleDateString();
-        document.getElementById("time").textContent = now.toLocaleTimeString();
-      }
-      setInterval(updateClock, 1000);
-      updateClock();
-    </script>
-  {% endblock %}
-</body>
-</html>
-
+{% endblock %}
