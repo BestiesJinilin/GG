@@ -1,7 +1,7 @@
 {% extends 'app/base.html' %}
 
 {% block title %}Plan Management — Green Garden{% endblock %}
-{% block nav_plan %}active{% endblock %}
+{% block nav_records %}active{% endblock %}
 
   {% block content %}
     <div class="content">
@@ -65,20 +65,21 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Plan A</td>
-                <td>A-101</td>
-                <td>50000</td>
-                <td>12 Months</td>
-                <td><span class="badge bg-success">Active</span></td>
-              </tr>
-              <tr>
-                <td>Plan B</td>
-                <td>A-102</td>
-                <td>70000</td>
-                <td>24 Months</td>
-                <td><span class="badge bg-danger">Paid</span></td>
-              </tr>
+              {% for data in status %}
+                <tr>
+                  <td>{{ data.plan }}</td>
+                  <td>A-101</td>
+                  <td>{{ data.monthly_payment }}</td>
+                  <td>{{ data.duration }} Months</td>
+                  {% if data.plan == "No Plan" %}
+                    <td><span class="badge bg-warning text-dark">Inactive</span></td>
+                  {% elif data.status %}
+                    <td><span class="badge bg-success">Active</span></td>
+                  {% else %}
+                    <td><span class="badge bg-danger">Paid</span></td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>
