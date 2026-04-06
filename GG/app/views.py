@@ -9,15 +9,12 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.timezone import localtime
 from dateutil.relativedelta import relativedelta
-from .models import ClientPersonalInfo, ClientStatus, Beneficiary, UserLog, Payment
-from .forms import ClientForm, BeneficiaryFormSet, EmployeeCreateForm, EmployeeUpdateForm
+from .models import ClientPersonalInfo, ClientStatus, UserLog, Payment
+from .forms import ClientForm, BeneficiaryFormSet, EmployeeCreateForm, EmployeeUpdateForm, PlanForm
 import datetime
 
 
-# ─────────────────────────────────────────────────────────────
-# HELPERS
-# ─────────────────────────────────────────────────────────────
-
+# Pin
 def _get_pin(user):
     """Return the correct PIN string for the current user.
     Admin's PIN is stored in settings (or a fixed default).
@@ -30,7 +27,6 @@ def _get_pin(user):
 
 
 def _admin_required(view_func):
-    """Decorator: only superuser / username=='admin' may access."""
     from functools import wraps
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
@@ -42,11 +38,7 @@ def _admin_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
-
-# ─────────────────────────────────────────────────────────────
-# AUTH
-# ─────────────────────────────────────────────────────────────
-
+# Login
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username", "")
@@ -70,7 +62,7 @@ def login_view(request):
 
     return render(request, "app/login.html")
 
-
+# Logout
 @login_required(login_url="login")
 @require_POST
 def logout(request):
@@ -85,10 +77,7 @@ def logout(request):
     return redirect("login")
 
 
-# ─────────────────────────────────────────────────────────────
-# DASHBOARD
-# ─────────────────────────────────────────────────────────────
-
+# Dashboard
 @login_required(login_url="login")
 def homepage_view(request):
     clients          = ClientPersonalInfo.objects.all()
@@ -106,10 +95,7 @@ def homepage_view(request):
     })
 
 
-# ─────────────────────────────────────────────────────────────
-# CLIENTS — CRUD
-# ─────────────────────────────────────────────────────────────
-
+# Client - CREATE
 @login_required(login_url="login")
 def add_client_view(request):
     if request.method == "POST":
@@ -164,7 +150,7 @@ def add_client_view(request):
         "beneficiary_formset": beneficiary_formset,
     })
 
-
+# Records
 @login_required(login_url="login")
 def records_view(request):
     query   = request.GET.get("q", "").strip()
@@ -184,7 +170,7 @@ def records_view(request):
 
     return render(request, "app/records.html", {"client": clients, "query": query})
 
-
+# Client - DETAILS
 @login_required(login_url="login")
 def client_details_view(request, pk):
     client        = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -194,7 +180,7 @@ def client_details_view(request, pk):
         "client_status": client_status,
     })
 
-
+# Client - UPDATE
 @login_required(login_url="login")
 def edit_details_view(request, pk):
     client = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -225,7 +211,7 @@ def edit_details_view(request, pk):
         "client":              client,
     })
 
-
+# Client - DELETE
 @login_required(login_url="login")
 def delete_client_view(request, pk):
     if request.method != "POST":
@@ -242,10 +228,8 @@ def delete_client_view(request, pk):
     return JsonResponse({"success": True, "name": name})
 
 
-# ─────────────────────────────────────────────────────────────
-# PAYMENTS
-# ─────────────────────────────────────────────────────────────
 
+# Generate rows for payment
 def _generate_payment_rows(client_status):
     if client_status.payments.exists():
         return
@@ -262,6 +246,7 @@ def _generate_payment_rows(client_status):
     ])
 
 
+# Payment - ADD
 @login_required(login_url="login")
 def add_payment_view(request, pk):
     client        = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -276,6 +261,7 @@ def add_payment_view(request, pk):
     })
 
 
+# Payment - HISTORY
 @login_required(login_url="login")
 def payment_history_view(request, pk):
     client        = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -328,10 +314,7 @@ def payment_history_view(request, pk):
     })
 
 
-# ─────────────────────────────────────────────────────────────
-# MONITOR  (admin only)
-# ─────────────────────────────────────────────────────────────
-
+# Monitor
 @login_required(login_url="login")
 @_admin_required
 def monitor_view(request):
@@ -365,16 +348,19 @@ def monitor_view(request):
 
 
 
-
+# Plan
 @login_required(login_url="login")
 def plan(request, pk):
     client = get_object_or_404(ClientPersonalInfo, pk=pk)
     status = ClientStatus.objects.filter(client=client)
-    return render(request, "app/plan.html", {"client": client, "status": status})
+
+    return render(request, "app/plan.html", {
+        "client": client,
+        "status": status,
+    })
 
 
-
-#Employee
+# Employee
 @login_required(login_url="login")
 @_admin_required
 def employee_view(request):
@@ -395,7 +381,7 @@ def employee_view(request):
         "query":     query,
     })
 
-#Employee - CREATE
+# Employee - CREATE
 @login_required(login_url="login")
 @_admin_required
 def add_employee_view(request):
@@ -449,7 +435,7 @@ def add_employee_view(request):
 
     return render(request, "app/add-employee.html", {"form": EmployeeCreateForm()})
 
-#Employee - DETAILS
+# Employee - DETAILS
 @login_required(login_url="login")
 @_admin_required
 def details_employee_view(request, pk):
@@ -466,7 +452,7 @@ def details_employee_view(request, pk):
         "duration_str": duration_str,
     })
 
-#Employee - UPDATE
+# Employee - UPDATE
 @login_required(login_url="login")
 @_admin_required
 def edit_employee_view(request, pk):
@@ -522,7 +508,7 @@ def edit_employee_view(request, pk):
         "employee": employee,
     })
 
-#Employee - DELETE
+# Employee - DELETE
 @login_required(login_url="login")
 @_admin_required
 def delete_employee_view(request, pk):
