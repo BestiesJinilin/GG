@@ -107,21 +107,23 @@ class Payment(models.Model):
 
 class UserLog(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
-    role = models.CharField(max_length=200)
-    first_name = models.CharField(max_length=200)
+    role = models.CharField(max_length=200,
+                            choices= [
+                                ("Office Staff", "Office Staff"),
+                            ]
+                        )
+    first_name = models.CharField(max_length=200, null=True, blank=True)
     middle_name = models.CharField(max_length=200, blank=True, null=True)
-    last_name = models.CharField(max_length=200)
-    employee_id = models.CharField(max_length=20)
+    last_name = models.CharField(max_length=200, null=True, blank=True)
     date_of_birth = models.DateField(blank=True, null=True)
-    government_id = models.CharField(max_length=200)
-    phone_number = models.CharField(max_length=13)
-    email = models.EmailField(max_length=200)
-    address = models.CharField(max_length=200)
-    emergency_contact_name = models.CharField(max_length=200)
-    emergency_contact_number = models.CharField(max_length=13)
+    government_id = models.CharField(max_length=200, null=True, blank=True)
+    phone_number = models.CharField(max_length=13, null=True, blank=True)
+    address = models.CharField(max_length=200, null=True, blank=True)
+    emergency_contact_name = models.CharField(max_length=200, null=True, blank=True)
+    emergency_contact_number = models.CharField(max_length=13, null=True, blank=True)
     time_in = models.DateTimeField(blank=True, null=True)
     time_out = models.DateTimeField(blank=True, null=True)
-    activities = models.CharField(max_length=500)
+    activities = models.CharField(max_length=500, null=True, blank=True)
     pin = models.IntegerField()
 
     def full_name(self):
