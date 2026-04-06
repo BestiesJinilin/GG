@@ -6,50 +6,42 @@
   {% block content %}
     <div class="content">
       <h4 class="mb-4">Plan Management</h4>
-      <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-          <h5 class="mb-3">Create Plan</h5>
-          <form>
-            <div class="row">
-              <div class="col-md-4 mb-3">
-                <label class="form-label">Plan Name</label>
-                <select class="form-select">
-                  <option>Plan A</option>
-                  <option>Plan B</option>
-                  <option>Plan C</option>
-                </select>
+        <div class="card shadow-sm border-0 mb-4">
+          <div class="card-body">
+            <h5 class="mb-3">Create Plan</h5>
+            <form method="POST" action="{% url 'plan' client.pk %}">
+              {% csrf_token %}
+              <div class="row">
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Plans</label>
+                  {{ form.plan }}
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Monthly Payment</label>
+                  {{ form.monthly_payment }}
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label">Duration</label>
+                  {{ form.duration }}
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Lot Number</label>
+                  <input type="text" class="form-control" placeholder="e.g. A-101">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Status</label>
+                  <select class="form-select">
+                    <option>Available</option>
+                    <option>Sold</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <button class="btn btn-success px-4">Save Plan</button>
+                </div>
               </div>
-              <div class="col-md-4 mb-3">
-                <label class="form-label">Price</label>
-                <input type="number" class="form-control">
-              </div>
-              <div class="col-md-4 mb-3">
-                <label class="form-label">Duration</label>
-                <select class="form-select">
-                  <option value="">Select Duration</option>
-                  <option value="12">12 Months</option>
-                  <option value="24">24 Months</option>
-                  <option value="36">36 Months</option>
-                </select>
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Lot Number</label>
-                <input type="text" class="form-control" placeholder="e.g. A-101">
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Status</label>
-                <select class="form-select">
-                  <option>Available</option>
-                  <option>Sold</option>
-                </select>
-              </div>
-              <div class="col-12">
-                <button class="btn btn-success px-4">Save Plan</button>
-              </div>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
-      </div>
       <div class="card shadow-sm border-0 mb-4">
         <div class="card-body">
             <!-- no crrent plans lang if wala pa -->
@@ -59,13 +51,13 @@
               <tr>
                 <th>Plan</th>
                 <th>Lot</th>
-                <th>Price</th>
+                <th>Monthly Payment</th>
                 <th>Duration</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {% for data in status %}
+              {% for data in plans %}
                 <tr>
                   <td>{{ data.plan }}</td>
                   <td>A-101</td>
