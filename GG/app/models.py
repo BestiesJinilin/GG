@@ -24,7 +24,6 @@ class ClientPersonalInfo(models.Model):
     client_occupation = models.CharField(max_length=200)
     client_employer_name = models.CharField(max_length=200)
     client_employer_address = models.CharField(max_length=200)
-
     client_spouse_name = models.CharField(max_length=200, blank=True, null=True)
     client_spouse_date_birth = models.DateField(blank=True, null=True)
     client_spouse_occupation = models.CharField(max_length=200, blank=True, null=True)
@@ -70,11 +69,20 @@ class Beneficiary(models.Model):
 
 class ClientStatus(models.Model):
     client = models.ForeignKey(ClientPersonalInfo, on_delete=models.CASCADE)
-    plan = models.CharField(max_length=200)
+    plan = models.CharField(max_length=200, choices=[
+        ("Plan A", "Plan A"),
+        ("Plan B", "Plan B"),
+        ("Plan C", "Plan C"),
+    ])
     monthly_payment = models.DecimalField(max_digits=20, decimal_places=2)
-    duration = models.IntegerField()          # total months in plan
-    months_remaining = models.IntegerField()  # decrements as payments are made
-    start_date = models.DateField()           # plan start / avail date
+    duration = models.IntegerField(max_length=20, choices=[
+        (12, "12 Months"),
+        (24, "24 Months"),
+        (36, "36 Months"),
+        (60, "60 Months"),
+    ])          
+    months_remaining = models.IntegerField()  
+    start_date = models.DateField()           
     balance = models.DecimalField(max_digits=20, decimal_places=2)
     paid_balance = models.DecimalField(max_digits=20, decimal_places=2)
     date_paid = models.DateTimeField(blank=True, null=True)
@@ -85,13 +93,11 @@ class ClientStatus(models.Model):
 
 
 class Payment(models.Model):
-    """One row per monthly instalment for a ClientStatus plan."""
     client_status = models.ForeignKey(
         ClientStatus,
         on_delete=models.CASCADE,
         related_name="payments"
     )
-    # The calendar month this instalment covers (always day=1 for easy display)
     month = models.DateField()
     amount = models.DecimalField(max_digits=20, decimal_places=2)
     is_paid = models.BooleanField(default=False)
@@ -110,7 +116,7 @@ class UserLog(models.Model):
     role = models.CharField(max_length=200,
                             choices= [
                                 ("Office Staff", "Office Staff"),
-                            ]
+                            ], null=True, blank=True
                         )
     first_name = models.CharField(max_length=200, null=True, blank=True)
     middle_name = models.CharField(max_length=200, blank=True, null=True)
