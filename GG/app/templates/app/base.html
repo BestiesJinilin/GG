@@ -52,15 +52,22 @@
          href="{% url 'add-client' %}">Add Client</a>
     </li>
 
-    <li class="nav-item">
+    <!-- <li class="nav-item">
       <a class="nav-link {% block nav_plan %}{% endblock %}"
          href="{% url 'plan' %}">Available Plans</a>
-    </li>
+    </li> -->
 
     <li class="nav-item">
       <a class="nav-link {% block nav_records %}{% endblock %}"
          href="{% url 'records' %}">Client Records</a>
     </li>
+
+    {% if user.username == "admin" %}
+    <li class="nav-item">
+      <a class="nav-link {% block nav_employee %}{% endblock %}"
+        href="{% url 'employee' %}">Employee</a>
+    </li>
+    {% endif %}
 
     <li class="nav-item">
       <a class="nav-link {% block nav_monitor %}{% endblock %}"
