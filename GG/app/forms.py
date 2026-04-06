@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import ClientPersonalInfo, Beneficiary, UserLog
+from .models import ClientPersonalInfo, Beneficiary, UserLog, ClientStatus
 import re
 from datetime import date
 
@@ -51,7 +51,6 @@ def clean_address(value, field_name="Address"):
 
 
 def clean_phone_number(number):
-    """Accept 09XXXXXXXXX or +639XXXXXXXXX and normalise to +63XXXXXXXXX."""
     number = (number or "").strip()
     digits = re.sub(r"\D", "", number)
 
@@ -378,3 +377,33 @@ class EmployeeUpdateForm(forms.Form):
                 raise forms.ValidationError("New passwords do not match.")
 
         return cleaned_data
+    
+class PlanForm(BootstrapForm):
+    class Meta:
+        model  = ClientStatus
+        fields = "__all__"
+
+    placeholders = {
+        "monthly_payment": "",
+    }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        plan_choices = [("", "Select Plan")] + list(
+            ClientStatus._meta.get_field("plan").choices
+        )
+        self.fields["plan"] = forms.ChoiceField(
+            choices=plan_choices,
+            widget=forms.Select(attrs={"class": "form-control"}),
+            required=True,
+        )
+
+        duration_choices = [("", "Select Duration")] + list(
+            ClientStatus._meta.get_field("duration").choices
+        )
+        self.fields["duration"] = forms.ChoiceField(
+            choices=duration_choices,
+            widget=forms.Select(attrs={"class": "form-control"}),
+            required=True,
+        )
