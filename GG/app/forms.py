@@ -378,32 +378,55 @@ class EmployeeUpdateForm(forms.Form):
 
         return cleaned_data
     
-class PlanForm(BootstrapForm):
-    class Meta:
-        model  = ClientStatus
-        fields = "__all__"
 
-    placeholders = {
-        "monthly_payment": "",
-    }
+class PlanForm(forms.Form):
+    PLAN_CHOICES = [("", "Select Plan")] + [
+        ("Plan A", "Plan A"),
+        ("Plan B", "Plan B"),
+        ("Plan C", "Plan C"),
+    ]
+    DURATION_CHOICES = [("", "Select Duration")] + [
+        (12,  "12 Months"),
+        (24,  "24 Months"),
+        (36,  "36 Months"),
+        (60,  "60 Months"),
+    ]
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    plan = forms.ChoiceField(
+        choices=PLAN_CHOICES,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        required=True,
+    )
+    monthly_payment = forms.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            "class":       "form-control",
+            "placeholder": "e.g. 2000.00",
+            "min":         "1",
+        }),
+        required=True,
+    )
+    duration = forms.ChoiceField(
+        choices=DURATION_CHOICES,
+        widget=forms.Select(attrs={"class": "form-control"}),
+        required=True,
+    )
 
-        plan_choices = [("", "Select Plan")] + list(
-            ClientStatus._meta.get_field("plan").choices
-        )
-        self.fields["plan"] = forms.ChoiceField(
-            choices=plan_choices,
-            widget=forms.Select(attrs={"class": "form-control"}),
-            required=True,
-        )
+    def clean_plan(self):
+        v = self.cleaned_data.get("plan")
+        if not v:
+            raise forms.ValidationError("Please select a plan.")
+        return v
 
-        duration_choices = [("", "Select Duration")] + list(
-            ClientStatus._meta.get_field("duration").choices
-        )
-        self.fields["duration"] = forms.ChoiceField(
-            choices=duration_choices,
-            widget=forms.Select(attrs={"class": "form-control"}),
-            required=True,
-        )
+    def clean_monthly_payment(self):
+        v = self.cleaned_data.get("monthly_payment")
+        if v is not None and v <= 0:
+            raise forms.ValidationError("Monthly payment must be greater than zero.")
+        return v
+
+    def clean_duration(self):
+        v = self.cleaned_data.get("duration")
+        if not v:
+            raise forms.ValidationError("Please select a duration.")
+        return int(v)
