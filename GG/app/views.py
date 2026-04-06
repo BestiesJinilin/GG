@@ -339,5 +339,19 @@ def plan_get(request, pk):
     client = get_object_or_404(ClientPersonalInfo, pk=pk)
     return render(request, "app/plan.html", {"client": client})
 
+@login_required(login_url="login")
 def plan_view(request):
     return render(request, "app/plan.html")
+
+@login_required(login_url="login")
+def employee_view(request):
+    return render(request, "app/viewemployee.html")
+
+@login_required(login_url="login")
+def add_employee_view(request):
+    return render(request, "app/add-employee.html")
+
+@login_required(login_url="login")
+def details_employee_view(request):
+    return render(request, "app/details-employee.html")
+
