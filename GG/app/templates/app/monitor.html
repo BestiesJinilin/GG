@@ -6,37 +6,46 @@
 {% block content %}
 <h4 class="mb-4">Employee Logs</h4>
 
+<!-- Filters -->
 <div class="card shadow-sm border-0 mb-4">
 <div class="card-body">
   <h5 class="mb-3">Filters</h5>
+  <form method="GET">
   <div class="row g-3">
     <div class="col-md-3">
-      <label class="form-label small">Employee</label>
-      <input type="text" class="form-control" placeholder="Search name">
+      <label class="form-label small">Employee Name</label>
+      <input type="text" name="name" class="form-control"
+             placeholder="Search name" value="{{ q_name }}">
     </div>
     <div class="col-md-3">
       <label class="form-label small">Action</label>
-      <select class="form-select">
-        <option>All</option>
-        <option>Login</option>
-        <option>Logout</option>
-        <option>Add Client</option>
-        <option>Add Payment</option>
-        <option>Edit Record</option>
+      <select name="action" class="form-select">
+        <option value="All" {% if q_action == "All" or not q_action %}selected{% endif %}>All</option>
+        <option value="Login"       {% if q_action == "Login" %}selected{% endif %}>Login</option>
+        <option value="Logout"      {% if q_action == "Logout" %}selected{% endif %}>Logout</option>
+        <option value="Add Client"  {% if q_action == "Add Client" %}selected{% endif %}>Add Client</option>
+        <option value="Add Payment" {% if q_action == "Add Payment" %}selected{% endif %}>Add Payment</option>
+        <option value="Edit Record" {% if q_action == "Edit Record" %}selected{% endif %}>Edit Record</option>
       </select>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <label class="form-label small">Date From</label>
-      <input type="date" class="form-control">
+      <input type="date" name="date_from" class="form-control" value="{{ q_from }}">
     </div>
-    <div class="col-md-3">
+    <div class="col-md-2">
       <label class="form-label small">Date To</label>
-      <input type="date" class="form-control">
+      <input type="date" name="date_to" class="form-control" value="{{ q_to }}">
+    </div>
+    <div class="col-md-2 d-flex align-items-end gap-2">
+      <button class="btn btn-primary w-100">Filter</button>
+      <a href="{% url 'monitor' %}" class="btn btn-secondary w-100">Reset</a>
     </div>
   </div>
+  </form>
 </div>
 </div>
 
+<!-- Logs Table -->
 <div class="card shadow-sm border-0">
 <div class="card-body">
   <h5 class="mb-3">Activity Logs</h5>
@@ -46,38 +55,51 @@
       <tr>
         <th>#</th>
         <th>Employee</th>
+        <th>Role</th>
         <th>Action</th>
-        <th>Description</th>
-        <th>Date</th>
+        <th>Time In</th>
+        <th>Time Out</th>
         <th>Status</th>
       </tr>
     </thead>
     <tbody>
+      {% for log in logs %}
       <tr>
-        <td>1</td><td>Jenilin</td><td>Login</td>
-        <td>Logged into system</td><td>Mar 18, 2026 09:12 AM</td>
-        <td><span class="badge bg-success">Success</span></td>
+        <td>{{ forloop.counter }}</td>
+        <td>{{ log.full_name }}</td>
+        <td><span class="badge bg-secondary">{{ log.role }}</span></td>
+        <td>{{ log.activities|default:"—" }}</td>
+        <td>
+          {% if log.time_in %}
+            {{ log.time_in|date:"M d, Y g:i A" }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if log.time_out %}
+            {{ log.time_out|date:"M d, Y g:i A" }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if log.time_in and not log.time_out %}
+            <span class="badge bg-success">Active</span>
+          {% elif log.activities == "Login" %}
+            <span class="badge bg-success">Success</span>
+          {% elif log.activities == "Logout" %}
+            <span class="badge bg-secondary">Done</span>
+          {% else %}
+            <span class="badge bg-primary">{{ log.activities|default:"—" }}</span>
+          {% endif %}
+        </td>
       </tr>
+      {% empty %}
       <tr>
-        <td>2</td><td>Mark</td><td>Add Client</td>
-        <td>Added Juan Dela Cruz</td><td>Mar 18, 2026 10:05 AM</td>
-        <td><span class="badge bg-success">Success</span></td>
+        <td colspan="7" class="text-center text-muted py-4">No activity logs found.</td>
       </tr>
-      <tr>
-        <td>3</td><td>Ana</td><td>Add Payment</td>
-        <td>Recorded ₱2,000 payment</td><td>Mar 18, 2026 10:30 AM</td>
-        <td><span class="badge bg-success">Success</span></td>
-      </tr>
-      <tr>
-        <td>4</td><td>Mark</td><td>Logout</td>
-        <td>Logged out</td><td>Mar 18, 2026 11:00 AM</td>
-        <td><span class="badge bg-secondary">Done</span></td>
-      </tr>
-      <tr>
-        <td>5</td><td>Unknown</td><td>Login</td>
-        <td>Failed login attempt</td><td>Mar 18, 2026 11:15 AM</td>
-        <td><span class="badge bg-danger">Failed</span></td>
-      </tr>
+      {% endfor %}
     </tbody>
   </table>
   </div>
