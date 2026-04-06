@@ -10,12 +10,43 @@ from django.utils import timezone
 from django.utils.timezone import localtime
 from dateutil.relativedelta import relativedelta
 from .models import ClientPersonalInfo, ClientStatus, Beneficiary, UserLog, Payment
-from .forms import ClientForm, BeneficiaryFormSet, EmployeeCreateForm
-# from .employee_forms import EmployeeCreateForm, EmployeeUpdateForm
+from .forms import ClientForm, BeneficiaryFormSet, EmployeeCreateForm, EmployeeUpdateForm
 import datetime
 
 
-#Login
+# ─────────────────────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────────────────────
+
+def _get_pin(user):
+    """Return the correct PIN string for the current user.
+    Admin's PIN is stored in settings (or a fixed default).
+    Regular employees have a UserLog row."""
+    if user.is_superuser or user.username == "admin":
+        from django.conf import settings
+        return str(getattr(settings, "ADMIN_PIN", "0000"))
+    log = UserLog.objects.filter(user=user).first()
+    return str(log.pin) if log else "1234"
+
+
+def _admin_required(view_func):
+    """Decorator: only superuser / username=='admin' may access."""
+    from functools import wraps
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect("login")
+        if not (request.user.is_superuser or request.user.username == "admin"):
+            messages.error(request, "Access denied. Admin only.")
+            return redirect("homepage")
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+# ─────────────────────────────────────────────────────────────
+# AUTH
+# ─────────────────────────────────────────────────────────────
+
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username", "")
@@ -25,11 +56,10 @@ def login_view(request):
         if user is not None:
             auth.login(request, user)
 
-            #Time in
             log = UserLog.objects.filter(user=user).first()
             if log:
                 log.time_in    = timezone.now()
-                log.time_out   = None        
+                log.time_out   = None
                 log.activities = "Login"
                 log.save()
 
@@ -40,12 +70,11 @@ def login_view(request):
 
     return render(request, "app/login.html")
 
-#Log out
+
 @login_required(login_url="login")
 @require_POST
 def logout(request):
-    #Time out
-    if request.user.username != "admin":
+    if not (request.user.is_superuser or request.user.username == "admin"):
         log = UserLog.objects.filter(user=request.user).first()
         if log:
             log.time_out   = timezone.now()
@@ -56,7 +85,10 @@ def logout(request):
     return redirect("login")
 
 
-# Dashboard
+# ─────────────────────────────────────────────────────────────
+# DASHBOARD
+# ─────────────────────────────────────────────────────────────
+
 @login_required(login_url="login")
 def homepage_view(request):
     clients          = ClientPersonalInfo.objects.all()
@@ -74,8 +106,10 @@ def homepage_view(request):
     })
 
 
+# ─────────────────────────────────────────────────────────────
+# CLIENTS — CRUD
+# ─────────────────────────────────────────────────────────────
 
-# Clients — CREATE
 @login_required(login_url="login")
 def add_client_view(request):
     if request.method == "POST":
@@ -88,7 +122,6 @@ def add_client_view(request):
         if form_valid and formset_valid:
             client = form.save(commit=False)
 
-            # Duplicate check
             if ClientPersonalInfo.objects.filter(
                 client_first_name__iexact=client.client_first_name,
                 client_last_name__iexact=client.client_last_name,
@@ -132,8 +165,6 @@ def add_client_view(request):
     })
 
 
-
-# Clients — Records
 @login_required(login_url="login")
 def records_view(request):
     query   = request.GET.get("q", "").strip()
@@ -154,8 +185,6 @@ def records_view(request):
     return render(request, "app/records.html", {"client": clients, "query": query})
 
 
-
-# Clients — Details
 @login_required(login_url="login")
 def client_details_view(request, pk):
     client        = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -166,8 +195,6 @@ def client_details_view(request, pk):
     })
 
 
-
-# Clients — UPDATE
 @login_required(login_url="login")
 def edit_details_view(request, pk):
     client = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -199,18 +226,13 @@ def edit_details_view(request, pk):
     })
 
 
-
-# Clients — DELETE
 @login_required(login_url="login")
 def delete_client_view(request, pk):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Method not allowed."}, status=405)
 
-    pin         = request.POST.get("pin", "")
-    user_log    = UserLog.objects.filter(user=request.user).first()
-    correct_pin = str(user_log.pin) if user_log else "1234"
-
-    if pin != correct_pin:
+    pin = request.POST.get("pin", "")
+    if pin != _get_pin(request.user):
         return JsonResponse({"success": False, "error": "Invalid PIN."})
 
     client = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -220,8 +242,10 @@ def delete_client_view(request, pk):
     return JsonResponse({"success": True, "name": name})
 
 
+# ─────────────────────────────────────────────────────────────
+# PAYMENTS
+# ─────────────────────────────────────────────────────────────
 
-# Payments - HELPER
 def _generate_payment_rows(client_status):
     if client_status.payments.exists():
         return
@@ -238,8 +262,6 @@ def _generate_payment_rows(client_status):
     ])
 
 
-
-# Payments - SUMMARY
 @login_required(login_url="login")
 def add_payment_view(request, pk):
     client        = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -254,7 +276,6 @@ def add_payment_view(request, pk):
     })
 
 
-# Payments — Table
 @login_required(login_url="login")
 def payment_history_view(request, pk):
     client        = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -267,12 +288,10 @@ def payment_history_view(request, pk):
     _generate_payment_rows(client_status)
 
     if request.method == "POST":
-        payment_id  = request.POST.get("payment_id", "")
-        pin         = request.POST.get("pin", "")
-        user_log    = UserLog.objects.filter(user=request.user).first()
-        correct_pin = str(user_log.pin) if user_log else "1234"
+        payment_id = request.POST.get("payment_id", "")
+        pin        = request.POST.get("pin", "")
 
-        if pin != correct_pin:
+        if pin != _get_pin(request.user):
             return JsonResponse({"success": False, "error": "Invalid PIN."})
 
         payment = get_object_or_404(Payment, pk=payment_id, client_status=client_status)
@@ -309,13 +328,44 @@ def payment_history_view(request, pk):
     })
 
 
-# Monitor
+# ─────────────────────────────────────────────────────────────
+# MONITOR  (admin only)
+# ─────────────────────────────────────────────────────────────
+
 @login_required(login_url="login")
+@_admin_required
 def monitor_view(request):
-    return render(request, "app/monitor.html")
+    logs = UserLog.objects.select_related("user").all().order_by("-time_in")
+
+    # Optional filters
+    q_name   = request.GET.get("name", "").strip()
+    q_action = request.GET.get("action", "").strip()
+    q_from   = request.GET.get("date_from", "").strip()
+    q_to     = request.GET.get("date_to", "").strip()
+
+    if q_name:
+        logs = logs.filter(
+            Q(first_name__icontains=q_name) |
+            Q(last_name__icontains=q_name)
+        )
+    if q_action and q_action != "All":
+        logs = logs.filter(activities__icontains=q_action)
+    if q_from:
+        logs = logs.filter(time_in__date__gte=q_from)
+    if q_to:
+        logs = logs.filter(time_in__date__lte=q_to)
+
+    return render(request, "app/monitor.html", {
+        "logs":     logs,
+        "q_name":   q_name,
+        "q_action": q_action,
+        "q_from":   q_from,
+        "q_to":     q_to,
+    })
 
 
-# Plan
+
+
 @login_required(login_url="login")
 def plan(request, pk):
     client = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -324,8 +374,9 @@ def plan(request, pk):
 
 
 
-# Employee — LIST
+#Employee
 @login_required(login_url="login")
+@_admin_required
 def employee_view(request):
     query     = request.GET.get("q", "").strip()
     employees = UserLog.objects.select_related("user").all().order_by("last_name", "first_name")
@@ -336,22 +387,17 @@ def employee_view(request):
             Q(last_name__icontains=query)   |
             Q(middle_name__icontains=query) |
             Q(role__icontains=query)        |
-            Q(employee_id__icontains=query) |
             Q(phone_number__icontains=query)
         ).distinct()
-
-
-    for emp in employees:
-        emp.full_name = emp.full_name()
 
     return render(request, "app/viewemployee.html", {
         "employees": employees,
         "query":     query,
     })
 
-
-# Employee - CREATE
+#Employee - CREATE
 @login_required(login_url="login")
+@_admin_required
 def add_employee_view(request):
     if request.method == "POST":
         form = EmployeeCreateForm(request.POST)
@@ -359,7 +405,11 @@ def add_employee_view(request):
         if form.is_valid():
             d = form.cleaned_data
 
-            if User.objects.filter(username=d["username"]).exists():
+            if d["username"].lower() == "admin":
+                form.add_error("username", "The username 'admin' is reserved.")
+                return render(request, "app/add-employee.html", {"form": form})
+
+            if User.objects.filter(username__iexact=d["username"]).exists():
                 form.add_error("username", "Username already exists.")
                 return render(request, "app/add-employee.html", {"form": form})
 
@@ -394,47 +444,31 @@ def add_employee_view(request):
                 f"Employee '{d['first_name']} {d['last_name']}' created successfully."
             )
             return redirect("employee")
-        else:
-            # Form invalid, render with errors
-            return render(request, "app/add-employee.html", {"form": form})
 
-    else:
-        form = EmployeeCreateForm()
+        return render(request, "app/add-employee.html", {"form": form})
 
-    return render(request, "app/add-employee.html", {"form": form})
+    return render(request, "app/add-employee.html", {"form": EmployeeCreateForm()})
 
-
-# Employee — DETAILS
+#Employee - DETAILS
 @login_required(login_url="login")
+@_admin_required
 def details_employee_view(request, pk):
     employee = get_object_or_404(UserLog, pk=pk)
 
-    # Annotate duration for display (simple minutes calculation)
-    logs = UserLog.objects.filter(pk=pk)  # single-row history for this employee
-    # For a real audit trail you'd have a separate AuditLog model;
-    # here we show the current UserLog record's session info.
-    # We build a synthetic list so the template loop works cleanly.
-    session = []
-    if employee.time_in:
-        duration_str = "—"
-        if employee.time_out:
-            delta   = employee.time_out - employee.time_in
-            minutes = int(delta.total_seconds() // 60)
-            hours   = minutes // 60
-            mins    = minutes % 60
-            duration_str = f"{hours}h {mins}m"
-        employee.duration = duration_str
-        session.append(employee)
+    duration_str = "—"
+    if employee.time_in and employee.time_out:
+        delta        = employee.time_out - employee.time_in
+        minutes      = int(delta.total_seconds() // 60)
+        duration_str = f"{minutes // 60}h {minutes % 60}m"
 
     return render(request, "app/employee-details.html", {
-        "employee": employee,
-        "logs":     session,
+        "employee":     employee,
+        "duration_str": duration_str,
     })
 
-
-
-# Employee — UPDATE
+#Employee - UPDATE
 @login_required(login_url="login")
+@_admin_required
 def edit_employee_view(request, pk):
     employee = get_object_or_404(UserLog, pk=pk)
 
@@ -443,7 +477,6 @@ def edit_employee_view(request, pk):
         if form.is_valid():
             d = form.cleaned_data
             with transaction.atomic():
-               
                 employee.first_name               = d["first_name"]
                 employee.middle_name              = d.get("middle_name", "") or ""
                 employee.last_name                = d["last_name"]
@@ -454,12 +487,10 @@ def edit_employee_view(request, pk):
                 employee.emergency_contact_name   = d["emergency_contact_name"]
                 employee.emergency_contact_number = d["emergency_contact_number"]
                 employee.role                     = d["role"]
-                employee.employee_id              = d["employee_id"]
                 employee.government_id            = d["government_id"]
                 employee.pin                      = d["pin"]
                 employee.save()
 
-        
                 if employee.user:
                     employee.user.first_name = d["first_name"]
                     employee.user.last_name  = d["last_name"]
@@ -482,7 +513,6 @@ def edit_employee_view(request, pk):
             "emergency_contact_name":   employee.emergency_contact_name,
             "emergency_contact_number": employee.emergency_contact_number,
             "role":                     employee.role,
-            "employee_id":              employee.employee_id,
             "government_id":            employee.government_id,
             "pin":                      employee.pin,
         })
@@ -492,22 +522,17 @@ def edit_employee_view(request, pk):
         "employee": employee,
     })
 
-
-
-# Employee — DELETE 
+#Employee - DELETE
 @login_required(login_url="login")
+@_admin_required
 def delete_employee_view(request, pk):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Method not allowed."}, status=405)
 
-    pin         = request.POST.get("pin", "")
-    user_log    = UserLog.objects.filter(user=request.user).first()
-    correct_pin = str(user_log.pin) if user_log else "1234"
-
-    if pin != correct_pin:
+    pin = request.POST.get("pin", "")
+    if pin != _get_pin(request.user):
         return JsonResponse({"success": False, "error": "Invalid PIN."})
 
-    # Prevent self-deletion
     employee = get_object_or_404(UserLog, pk=pk)
     if employee.user == request.user:
         return JsonResponse({"success": False, "error": "You cannot delete your own account."})
@@ -515,7 +540,7 @@ def delete_employee_view(request, pk):
     name = employee.full_name()
     with transaction.atomic():
         if employee.user:
-            employee.user.delete() 
+            employee.user.delete()
         else:
             employee.delete()
 
