@@ -15,7 +15,7 @@ from .forms import ClientForm, BeneficiaryFormSet, EmployeeCreateForm
 import datetime
 
 
-
+#Login
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username", "")
@@ -40,7 +40,7 @@ def login_view(request):
 
     return render(request, "app/login.html")
 
-
+#Log out
 @login_required(login_url="login")
 @require_POST
 def logout(request):
@@ -221,7 +221,7 @@ def delete_client_view(request, pk):
 
 
 
-# Payments - helper
+# Payments - HELPER
 def _generate_payment_rows(client_status):
     if client_status.payments.exists():
         return
@@ -239,7 +239,7 @@ def _generate_payment_rows(client_status):
 
 
 
-# Payments — summary
+# Payments - SUMMARY
 @login_required(login_url="login")
 def add_payment_view(request, pk):
     client        = get_object_or_404(ClientPersonalInfo, pk=pk)
@@ -350,7 +350,7 @@ def employee_view(request):
     })
 
 
-# Employee - Create
+# Employee - CREATE
 @login_required(login_url="login")
 def add_employee_view(request):
     if request.method == "POST":
@@ -359,13 +359,11 @@ def add_employee_view(request):
         if form.is_valid():
             d = form.cleaned_data
 
-            # Duplicate username check
             if User.objects.filter(username=d["username"]).exists():
                 form.add_error("username", "Username already exists.")
                 return render(request, "app/add-employee.html", {"form": form})
 
             with transaction.atomic():
-                # 1. Create Django User
                 user = User.objects.create_user(
                     username=d["username"],
                     password=d["password"],
@@ -374,7 +372,6 @@ def add_employee_view(request):
                     last_name=d["last_name"],
                 )
 
-                # 2. Create linked UserLog
                 UserLog.objects.create(
                     user=user,
                     role=d["role"],
@@ -383,7 +380,7 @@ def add_employee_view(request):
                     last_name=d["last_name"],
                     date_of_birth=d["date_of_birth"],
                     government_id=d.get("government_id", ""),
-                    phone_number=d.get("contact_number", ""),
+                    phone_number=d.get("phone_number", ""),
                     email=d.get("email", ""),
                     address=d["address"],
                     emergency_contact_name=d["emergency_contact_name"],
@@ -407,7 +404,7 @@ def add_employee_view(request):
     return render(request, "app/add-employee.html", {"form": form})
 
 
-# Employee — Details
+# Employee — DETAILS
 @login_required(login_url="login")
 def details_employee_view(request, pk):
     employee = get_object_or_404(UserLog, pk=pk)
