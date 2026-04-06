@@ -119,6 +119,7 @@ class UserLog(models.Model):
     government_id = models.CharField(max_length=200, null=True, blank=True)
     phone_number = models.CharField(max_length=13, null=True, blank=True)
     address = models.CharField(max_length=200, null=True, blank=True)
+    email = models.EmailField(max_length=200, null=True, blank=True)
     emergency_contact_name = models.CharField(max_length=200, null=True, blank=True)
     emergency_contact_number = models.CharField(max_length=13, null=True, blank=True)
     time_in = models.DateTimeField(blank=True, null=True)
