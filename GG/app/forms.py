@@ -279,7 +279,7 @@ class EmployeeCreateForm(BootstrapForm):
     def clean_employee_address(self):
         return clean_address(self.cleaned_data.get("address"), "Home address")
 
-    def clean_employee_contact_number(self):
+    def clean_employee_phone_number(self):
         return clean_phone_number(self.cleaned_data.get("phone_number"))
 
     def clean_employee_date_birth(self):
