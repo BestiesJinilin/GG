@@ -115,7 +115,7 @@ class UserLog(models.Model):
     date_of_birth = models.DateField(blank=True, null=True)
     government_id = models.CharField(max_length=200)
     phone_number = models.CharField(max_length=13)
-    email = models.CharField(max_length=200)
+    email = models.EmailField(max_length=200)
     address = models.CharField(max_length=200)
     emergency_contact_name = models.CharField(max_length=200)
     emergency_contact_number = models.CharField(max_length=13)
@@ -124,5 +124,9 @@ class UserLog(models.Model):
     activities = models.CharField(max_length=500)
     pin = models.IntegerField()
 
+    def full_name(self):
+        middle = f" {self.middle_name}" if self.middle_name else ""
+        return f"{self.first_name}{middle} {self.last_name}".strip()
+
     def __str__(self):
-        return self.name
+        return self.full_name()
