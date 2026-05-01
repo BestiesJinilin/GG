@@ -32,7 +32,10 @@
       <div id="time" class="fw-bold"></div>
     </div>
     <span class="admin-box">{{ user.username|title }}</span>
-    <a href="{% url 'logout' %}" class="btn btn-danger px-4 ms-2">Logout</a>
+    <form method="POST" action="{% url 'logout' %}" class="ms-2">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger px-4">Logout</button>
+    </form>
   </div>
 </nav>
 
@@ -52,11 +55,6 @@
          href="{% url 'add-client' %}">Add Client</a>
     </li>
 
-    <!-- <li class="nav-item">
-      <a class="nav-link {% block nav_plan %}{% endblock %}"
-         href="{% url 'plan' %}">Available Plans</a>
-    </li> -->
-
     <li class="nav-item">
       <a class="nav-link {% block nav_records %}{% endblock %}"
          href="{% url 'records' %}">Client Records</a>
@@ -67,12 +65,13 @@
       <a class="nav-link {% block nav_employee %}{% endblock %}"
         href="{% url 'employee' %}">Employee</a>
     </li>
-    {% endif %}
+    
 
     <li class="nav-item">
       <a class="nav-link {% block nav_monitor %}{% endblock %}"
          href="{% url 'monitor' %}">Monitor</a>
     </li>
+    {% endif %}
 
   </ul>
 </div>
