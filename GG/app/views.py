@@ -361,7 +361,7 @@ def plan(request, pk):
             d         = form.cleaned_data
             plan_name = d["plan"]
             monthly   = d["monthly_payment"]
-            duration  = d["duration"]          # already int after clean
+            duration  = d["duration"]
             total     = monthly * duration
             today     = datetime.date.today()
 
@@ -591,3 +591,9 @@ def delete_employee_view(request, pk):
             employee.delete()
 
     return JsonResponse({"success": True, "name": name})
+
+
+
+@login_required(login_url="login")
+def bookings_view(request):
+    return render(request, "app/bookings.html")
