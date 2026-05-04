@@ -70,23 +70,33 @@ class Beneficiary(models.Model):
 class ClientStatus(models.Model):
     client = models.ForeignKey(ClientPersonalInfo, on_delete=models.CASCADE)
     plan = models.CharField(max_length=200, choices=[
-        ("Plan A", "Plan A"),
-        ("Plan B", "Plan B"),
-        ("Plan C", "Plan C"),
+        ("Lawn lot", "Lawn lot"),
+        ("Garden lot", "Garden lot"),
+        ("Junior court", "Junior court"),
+        ("Executive court", "Executive court"),
+        ("Senior court", "Senior court"),
+        ("Family estate", "Family estate"),
+        ("Grand estate", "Grand estate"),
     ])
     monthly_payment = models.DecimalField(max_digits=20, decimal_places=2)
     duration = models.IntegerField(max_length=20, choices=[
+        (6, "6 Months"),
         (12, "12 Months"),
         (24, "24 Months"),
         (36, "36 Months"),
         (60, "60 Months"),
-    ])          
+    ])
+    down_payment = models.DecimalField(max_digits=20, decimal_places=2, null=True)
     months_remaining = models.IntegerField()  
     start_date = models.DateField()           
     balance = models.DecimalField(max_digits=20, decimal_places=2)
     paid_balance = models.DecimalField(max_digits=20, decimal_places=2)
     date_paid = models.DateTimeField(blank=True, null=True)
     status = models.BooleanField(default=True)
+    phase = models.CharField(max_length=200, blank=True, null=True)
+    section = models.CharField(max_length=200, blank=True, null=True)
+    lot_number = models.CharField(max_length=200, blank=True, null=True)
+    pa_number = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
         return self.client.full_name()
