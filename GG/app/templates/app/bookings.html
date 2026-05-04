@@ -1,0 +1,78 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Bookings — Green Garden{% endblock %}
+{% block nav_bookings %}active{% endblock %}
+
+{% block content %}
+
+<h3>Bookings</h3>
+
+<!-- BOOKING FORM -->
+<div class="card shadow-sm mt-3">
+    <div class="card-body">
+        <h5 class="mb-3">New Booking</h5>
+        <form>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Client Name</label>
+                    <input type="text" class="form-control">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Contact Number</label>
+                    <input type="text" class="form-control">
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Event</label>
+                    <select class="form-select">
+                        <option selected disabled>Select event</option>
+                        <option>Viewing</option>
+                        <option>Interment</option>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Booking Date</label>
+
+                    <div class="d-grid">
+                        <a href="calendar.html" class="btn btn-outline-primary">
+                        View Booking Calendar
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="col-12">
+                    <button class="btn btn-primary px-4">Save Booking</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    crossorigin="anonymous"></script>
+
+<script>
+(function () {
+function updateClock() {
+    const now = new Date();
+
+    document.getElementById("date").textContent = now.toLocaleDateString();
+    document.getElementById("time").textContent = now.toLocaleTimeString();
+}
+
+setInterval(updateClock, 1000);
+updateClock();
+})();
+
+</script>
+{% endblock %}
