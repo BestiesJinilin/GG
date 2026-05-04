@@ -381,15 +381,20 @@ class EmployeeUpdateForm(forms.Form):
 
 class PlanForm(forms.Form):
     PLAN_CHOICES = [("", "Select Plan")] + [
-        ("Plan A", "Plan A"),
-        ("Plan B", "Plan B"),
-        ("Plan C", "Plan C"),
+        ("Lawn lot", "Lawn lot"),
+        ("Garden lot", "Garden lot"),
+        ("Junior court", "Junior court"),
+        ("Executive court", "Executive court"),
+        ("Senior court", "Senior court"),
+        ("Family estate", "Family estate"),
+        ("Grand estate", "Grand estate"),
     ]
     DURATION_CHOICES = [("", "Select Duration")] + [
-        (12,  "12 Months"),
-        (24,  "24 Months"),
-        (36,  "36 Months"),
-        (60,  "60 Months"),
+        (6, "6 Months"),
+        (12, "12 Months"),
+        (24, "24 Months"),
+        (36, "36 Months"),
+        (60, "60 Months"),
     ]
 
     plan = forms.ChoiceField(
@@ -402,7 +407,7 @@ class PlanForm(forms.Form):
         decimal_places=2,
         widget=forms.NumberInput(attrs={
             "class":       "form-control",
-            "placeholder": "e.g. 2000.00",
+            "placeholder": "Monthly",
             "min":         "1",
         }),
         required=True,
