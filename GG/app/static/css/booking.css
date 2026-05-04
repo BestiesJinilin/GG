@@ -1,0 +1,67 @@
+body {
+  background: #f5f6fa;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+}
+
+.topbar {
+  background: #2d8cf0;
+  height: 60px;
+}
+
+.sidebar {
+  width: 220px;
+  background: #2f3640;
+  min-height: 100vh;
+  padding-top: 20px;
+}
+
+.sidebar .nav-link {
+  color: #dcdde1;
+  margin: 10px;
+  padding: 12px 20px;
+}
+
+.sidebar .nav-link:hover {
+  background: #40739e;
+  color: #fff;
+}
+
+.sidebar .active {
+  background: #2d8cf0;
+  color: #fff;
+  border-radius: 5px;
+}
+
+.content {
+  flex: 1;
+  padding: 30px;
+}
+
+.admin-box {
+  background: #fff;
+  color: #2d8cf0;
+  padding: 6px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.lot-box {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  font-size: 12px;
+  color: #fff;
+}
+
+.available {
+  background: #28a745;
+}
+
+.sold {
+  background: #dc3545;
+}
