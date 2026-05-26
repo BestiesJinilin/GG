@@ -60,12 +60,17 @@
          href="{% url 'records' %}">Client Records</a>
     </li>
 
+    {# FIX: Bookings nav link was missing from sidebar; bookings.html uses {% block nav_bookings %} but it was never rendered #}
+    <li class="nav-item">
+      <a class="nav-link {% block nav_bookings %}{% endblock %}"
+         href="{% url 'bookings' %}">Bookings</a>
+    </li>
+
     {% if user.username == "admin" %}
     <li class="nav-item">
       <a class="nav-link {% block nav_employee %}{% endblock %}"
         href="{% url 'employee' %}">Employee</a>
     </li>
-    
 
     <li class="nav-item">
       <a class="nav-link {% block nav_monitor %}{% endblock %}"
