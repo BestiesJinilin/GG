@@ -79,16 +79,17 @@ class ClientStatus(models.Model):
         ("Grand estate", "Grand estate"),
     ])
     monthly_payment = models.DecimalField(max_digits=20, decimal_places=2)
-    duration = models.IntegerField(max_length=20, choices=[
+    # FIX: removed invalid max_length=20 from IntegerField
+    duration = models.IntegerField(choices=[
         (6, "6 Months"),
         (12, "12 Months"),
         (24, "24 Months"),
         (36, "36 Months"),
         (60, "60 Months"),
     ])
-    down_payment = models.DecimalField(max_digits=20, decimal_places=2, null=True)
-    months_remaining = models.IntegerField()  
-    start_date = models.DateField()           
+    down_payment = models.DecimalField(max_digits=20, decimal_places=2, null=True, blank=True)
+    months_remaining = models.IntegerField()
+    start_date = models.DateField()
     balance = models.DecimalField(max_digits=20, decimal_places=2)
     paid_balance = models.DecimalField(max_digits=20, decimal_places=2)
     date_paid = models.DateTimeField(blank=True, null=True)
@@ -124,7 +125,7 @@ class Payment(models.Model):
 class UserLog(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     role = models.CharField(max_length=200,
-                            choices= [
+                            choices=[
                                 ("Office Staff", "Office Staff"),
                             ], null=True, blank=True
                         )
