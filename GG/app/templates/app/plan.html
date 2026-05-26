@@ -27,70 +27,83 @@
 <!-- Create / Update Plan -->
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
-    <h5 class="mb-3">Lot</h5>
+    <h5 class="mb-3">Assign Lot</h5>
+
     <form method="POST" action="{% url 'plan' client.pk %}">
       {% csrf_token %}
-      <div class="row">
 
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Lot type</label>
+      <!-- Row 1: Plan Type / Monthly / Down Payment / Duration -->
+      <div class="row mb-3">
+        <div class="col-md-3">
+          <label class="form-label">Lot Type <span class="text-danger">*</span></label>
           {{ form.plan }}
           {% if form.plan.errors %}
             <div class="text-danger small mt-1">{{ form.plan.errors.0 }}</div>
           {% endif %}
         </div>
 
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Down Payment</label>
-            <input type="number" class="form-control" name="down_payment">
-        </div>
-
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Monthly Payment</label>
+        <div class="col-md-3">
+          <label class="form-label">Monthly Payment <span class="text-danger">*</span></label>
           {{ form.monthly_payment }}
           {% if form.monthly_payment.errors %}
             <div class="text-danger small mt-1">{{ form.monthly_payment.errors.0 }}</div>
           {% endif %}
         </div>
 
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Duration</label>
+        <div class="col-md-3">
+          <label class="form-label">Down Payment</label>
+          {{ form.down_payment }}
+          {% if form.down_payment.errors %}
+            <div class="text-danger small mt-1">{{ form.down_payment.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label">Duration <span class="text-danger">*</span></label>
           {{ form.duration }}
           {% if form.duration.errors %}
             <div class="text-danger small mt-1">{{ form.duration.errors.0 }}</div>
           {% endif %}
         </div>
+      </div>
 
-        <div class="col-md-4 mb-3">
+      <!-- Row 2: Lot Details -->
+      <div class="row mb-3">
+        <div class="col-md-3">
           <label class="form-label">Phase</label>
-          <input type="text" class="form-control" name="phase" value="P - ">
+          {{ form.phase }}
+          {% if form.phase.errors %}
+            <div class="text-danger small mt-1">{{ form.phase.errors.0 }}</div>
+          {% endif %}
         </div>
 
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Block</label>
-          <input type="text" class="form-control" name="block" value="B - ">
-        </div>
-
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3">
           <label class="form-label">Section</label>
-          <input type="text" class="form-control" name="section" value="S - ">
+          {{ form.section }}
+          {% if form.section.errors %}
+            <div class="text-danger small mt-1">{{ form.section.errors.0 }}</div>
+          {% endif %}
         </div>
 
-        <div class="col-md-4 mb-3">
-          <label class="form-label">Lot number</label>
-          <input type="text" class="form-control" name="section" value="L - ">
+        <div class="col-md-3">
+          <label class="form-label">Lot Number</label>
+          {{ form.lot_number }}
+          {% if form.lot_number.errors %}
+            <div class="text-danger small mt-1">{{ form.lot_number.errors.0 }}</div>
+          {% endif %}
         </div>
 
-        <div class="col-md-4 mb-3">
-          <label class="form-label">P.A number</label>
-          <input type="number" class="form-control" name="section">
+        <div class="col-md-3">
+          <label class="form-label">P.A. Number</label>
+          {{ form.pa_number }}
+          {% if form.pa_number.errors %}
+            <div class="text-danger small mt-1">{{ form.pa_number.errors.0 }}</div>
+          {% endif %}
         </div>
+      </div>
 
-
-        <div class="col-12">
-          <button class="btn btn-success px-4">Save Plan</button>
-        </div>
-
+      <div>
+        <button type="submit" class="btn btn-success px-4">Save Plan</button>
       </div>
     </form>
   </div>
@@ -100,13 +113,18 @@
 <div class="card shadow-sm border-0 mb-4">
   <div class="card-body">
     <h5 class="mb-3">Current Plan</h5>
-    <table class="table">
-      <thead>
+    <div class="table-responsive">
+    <table class="table table-bordered align-middle">
+      <thead class="table-dark">
         <tr>
           <th>Plan</th>
-          <th>Lot</th>
-          <th>Monthly Payment</th>
+          <th>Monthly</th>
+          <th>Down Payment</th>
           <th>Duration</th>
+          <th>Phase</th>
+          <th>Section</th>
+          <th>Lot No.</th>
+          <th>P.A. No.</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -114,9 +132,19 @@
         {% for data in plans %}
           <tr>
             <td>{{ data.plan }}</td>
-            <td><span class="text-muted">—</span></td>
             <td>₱{{ data.monthly_payment }}</td>
+            <td>
+              {% if data.down_payment %}
+                ₱{{ data.down_payment }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
             <td>{{ data.duration }} Months</td>
+            <td>{{ data.phase|default:"—" }}</td>
+            <td>{{ data.section|default:"—" }}</td>
+            <td>{{ data.lot_number|default:"—" }}</td>
+            <td>{{ data.pa_number|default:"—" }}</td>
             <td>
               {% if data.plan == "No Plan" %}
                 <span class="badge bg-warning text-dark">Inactive</span>
@@ -129,11 +157,12 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="5" class="text-center text-muted">No plan assigned yet.</td>
+            <td colspan="9" class="text-center text-muted">No plan assigned yet.</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
 </div>
 {% endblock %}
