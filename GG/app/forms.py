@@ -78,7 +78,7 @@ class ClientForm(BootstrapForm):
         model  = ClientPersonalInfo
         fields = "__all__"
         widgets = {
-            "client_date_birth":       forms.DateInput(attrs={"type": "date"}),
+            "client_date_birth":        forms.DateInput(attrs={"type": "date"}),
             "client_spouse_date_birth": forms.DateInput(attrs={"type": "date"}),
             "client_date_issued":       forms.DateInput(attrs={"type": "date"}),
         }
@@ -313,10 +313,10 @@ class EmployeeUpdateForm(forms.Form):
     role                     = forms.ChoiceField(
         choices=[("", "Select Role")] + list(UserLog._meta.get_field("role").choices)
     )
-    government_id  = forms.CharField()
-    pin            = forms.IntegerField()
-    new_password   = forms.CharField(required=False, widget=forms.PasswordInput,
-                                     label="New Password (leave blank to keep current)")
+    government_id    = forms.CharField()
+    pin              = forms.IntegerField()
+    new_password     = forms.CharField(required=False, widget=forms.PasswordInput,
+                                       label="New Password (leave blank to keep current)")
     confirm_password = forms.CharField(required=False, widget=forms.PasswordInput,
                                        label="Confirm New Password")
 
@@ -377,8 +377,11 @@ class EmployeeUpdateForm(forms.Form):
                 raise forms.ValidationError("New passwords do not match.")
 
         return cleaned_data
-    
 
+
+# FIX: PlanForm now includes all lot-detail fields that exist on ClientStatus model.
+# Previously down_payment, phase, section, lot_number, pa_number were plain <input> tags
+# in the template but never validated or saved by the view.
 class PlanForm(forms.Form):
     PLAN_CHOICES = [("", "Select Plan")] + [
         ("Lawn lot", "Lawn lot"),
@@ -407,15 +410,47 @@ class PlanForm(forms.Form):
         decimal_places=2,
         widget=forms.NumberInput(attrs={
             "class":       "form-control",
-            "placeholder": "Monthly",
+            "placeholder": "e.g. 2500.00",
             "min":         "1",
+            "step":        "0.01",
         }),
         required=True,
+    )
+    down_payment = forms.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            "class":       "form-control",
+            "placeholder": "e.g. 5000.00",
+            "min":         "0",
+            "step":        "0.01",
+        }),
+        required=False,
     )
     duration = forms.ChoiceField(
         choices=DURATION_CHOICES,
         widget=forms.Select(attrs={"class": "form-control"}),
         required=True,
+    )
+    phase = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. P-1"}),
+    )
+    section = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. S-A"}),
+    )
+    lot_number = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. L-12"}),
+    )
+    pa_number = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. 00123"}),
     )
 
     def clean_plan(self):
@@ -428,6 +463,12 @@ class PlanForm(forms.Form):
         v = self.cleaned_data.get("monthly_payment")
         if v is not None and v <= 0:
             raise forms.ValidationError("Monthly payment must be greater than zero.")
+        return v
+
+    def clean_down_payment(self):
+        v = self.cleaned_data.get("down_payment")
+        if v is not None and v < 0:
+            raise forms.ValidationError("Down payment cannot be negative.")
         return v
 
     def clean_duration(self):
