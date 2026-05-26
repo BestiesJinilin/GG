@@ -1,129 +1,113 @@
 {% extends 'app/base.html' %}
 
-{% block title %}Client Records — Green Garden{% endblock %}
-{% block nav_records %}active{% endblock %}
+{% block title %}{{ employee.full_name }} — Green Garden{% endblock %}
+{% block nav_employee %}active{% endblock %}
 
 {% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="mb-0">Employee Profile</h3>
+</div>
 
-{# FIX: removed the stray <div class="content"> that was double-wrapping the page content #}
-
-<h3 class="mb-4">Client Profile</h3>
+<!-- Account Info -->
+<div class="card shadow-sm mb-4">
+<div class="card-body">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Account Information</h5>
+    <span class="badge bg-primary">{{ employee.role }}</span>
+  </div>
+  <div class="row">
+    <div class="col-md-4 mb-2">
+      <strong>Username:</strong>
+      {% if employee.user %}{{ employee.user.username }}{% else %}<span class="text-muted">—</span>{% endif %}
+    </div>
+    <div class="col-md-4 mb-2">
+      <strong>Employee ID:</strong> #{{ employee.pk }}
+    </div>
+    <div class="col-md-4 mb-2">
+      <strong>Last Activity:</strong>
+      {{ employee.activities|default:"—" }}
+    </div>
+  </div>
+</div>
+</div>
 
 <!-- Personal Information -->
 <div class="card shadow-sm mb-4">
 <div class="card-body">
   <h5 class="mb-3">Personal Information</h5>
   <div class="row">
-    <div class="col-md-4"><strong>First Name:</strong> {{ client.client_first_name }}</div>
-    <div class="col-md-4"><strong>Middle Name:</strong> {{ client.client_middle_name|default:"—" }}</div>
-    <div class="col-md-4"><strong>Last Name:</strong> {{ client.client_last_name }}</div>
+    <div class="col-md-4 mb-2"><strong>First Name:</strong> {{ employee.first_name|default:"—" }}</div>
+    <div class="col-md-4 mb-2"><strong>Middle Name:</strong> {{ employee.middle_name|default:"—" }}</div>
+    <div class="col-md-4 mb-2"><strong>Last Name:</strong> {{ employee.last_name|default:"—" }}</div>
   </div>
-  <div class="row mt-2">
-    <div class="col-md-6"><strong>Address:</strong> {{ client.client_address }}</div>
-    <div class="col-md-3"><strong>Contact:</strong> {{ client.client_contact_number }}</div>
-    <div class="col-md-3"><strong>Civil Status:</strong> {{ client.client_civil_status }}</div>
-  </div>
-  <div class="row mt-2">
-    <div class="col-md-3"><strong>Birthdate:</strong> {{ client.client_date_birth }}</div>
-    <div class="col-md-3"><strong>Religion:</strong> {{ client.client_religion }}</div>
-    <div class="col-md-3"><strong>Occupation:</strong> {{ client.client_occupation }}</div>
-    <div class="col-md-3"><strong>Employer:</strong> {{ client.client_employer_name }}</div>
-  </div>
-  <div class="mt-2">
-    <strong>Employer Address:</strong> {{ client.client_employer_address }}
-  </div>
-</div>
-</div>
-
-<!-- Spouse Information -->
-<div class="card shadow-sm mb-4">
-<div class="card-body">
-  <h5 class="mb-3">Spouse Information</h5>
   <div class="row">
-    <div class="col-md-4"><strong>Name:</strong> {{ client.client_spouse_name|default:"—" }}</div>
-    <div class="col-md-3"><strong>Birthdate:</strong> {{ client.client_spouse_date_birth|default:"—" }}</div>
-    <div class="col-md-3"><strong>Occupation:</strong> {{ client.client_spouse_occupation|default:"—" }}</div>
-    <div class="col-md-2"><strong>Employer:</strong> {{ client.client_spouse_employer|default:"—" }}</div>
+    <div class="col-md-4 mb-2"><strong>Date of Birth:</strong> {{ employee.date_of_birth|default:"—" }}</div>
+    <div class="col-md-4 mb-2"><strong>Phone:</strong> {{ employee.phone_number|default:"—" }}</div>
+    <div class="col-md-4 mb-2"><strong>Email:</strong> {{ employee.email|default:"—" }}</div>
+  </div>
+  <div class="row">
+    <div class="col-md-8 mb-2"><strong>Address:</strong> {{ employee.address|default:"—" }}</div>
+    <div class="col-md-4 mb-2"><strong>Government ID:</strong> {{ employee.government_id|default:"—" }}</div>
   </div>
 </div>
 </div>
 
-<!-- Government ID -->
+<!-- Emergency Contact -->
 <div class="card shadow-sm mb-4">
 <div class="card-body">
-  <h5 class="mb-3">Government ID</h5>
+  <h5 class="mb-3">Emergency Contact</h5>
   <div class="row">
-    <div class="col-md-3"><strong>Type:</strong> {{ client.client_id_type }}</div>
-    <div class="col-md-3"><strong>Number:</strong> {{ client.client_id_number }}</div>
-    <div class="col-md-3"><strong>Date Issued:</strong> {{ client.client_date_issued }}</div>
-    <div class="col-md-3"><strong>Place Issued:</strong> {{ client.client_place_issued }}</div>
+    <div class="col-md-6 mb-2">
+      <strong>Name:</strong> {{ employee.emergency_contact_name|default:"—" }}
+    </div>
+    <div class="col-md-6 mb-2">
+      <strong>Number:</strong> {{ employee.emergency_contact_number|default:"—" }}
+    </div>
   </div>
 </div>
 </div>
 
-<!-- Beneficiaries -->
+<!-- Session / Attendance -->
 <div class="card shadow-sm mb-4">
 <div class="card-body">
-  <h5 class="mb-3">Beneficiaries</h5>
-  {% if client.beneficiaries.all %}
-    <ul class="list-group">
-      {% for b in client.beneficiaries.all %}
-        <li class="list-group-item">{{ b.name }} — {{ b.relationship }}</li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted">No beneficiaries added.</p>
-  {% endif %}
-</div>
-</div>
-
-<!-- Plan / Payment Status -->
-<div class="card shadow-sm mb-4">
-<div class="card-body">
-  <h5 class="mb-3">Plan &amp; Payment Status</h5>
-  {% if client_status %}
+  <h5 class="mb-3">Latest Session</h5>
   <div class="row">
-    <div class="col-md-3"><strong>Plan:</strong> {{ client_status.plan }}</div>
-    <div class="col-md-3"><strong>Monthly:</strong> ₱{{ client_status.monthly_payment }}</div>
-    <div class="col-md-3"><strong>Duration:</strong> {{ client_status.duration }} months</div>
-    <div class="col-md-3">
-      <strong>Status:</strong>
-      {% if client_status.plan == "No Plan" %}
-        <span class="badge bg-warning text-dark">Inactive</span>
-      {% elif client_status.status %}
-        <span class="badge bg-success">Active</span>
+    <div class="col-md-3 mb-2">
+      <strong>Time In:</strong><br>
+      {% if employee.time_in %}
+        {{ employee.time_in|date:"M d, Y g:i A" }}
       {% else %}
-        <span class="badge bg-secondary">Completed</span>
+        <span class="text-muted">—</span>
+      {% endif %}
+    </div>
+    <div class="col-md-3 mb-2">
+      <strong>Time Out:</strong><br>
+      {% if employee.time_out %}
+        {{ employee.time_out|date:"M d, Y g:i A" }}
+      {% else %}
+        <span class="text-muted">—</span>
+      {% endif %}
+    </div>
+    <div class="col-md-3 mb-2">
+      <strong>Duration:</strong><br>
+      {{ duration_str }}
+    </div>
+    <div class="col-md-3 mb-2">
+      <strong>Status:</strong><br>
+      {% if employee.time_in and not employee.time_out %}
+        <span class="badge bg-success">Currently Logged In</span>
+      {% elif employee.time_out %}
+        <span class="badge bg-secondary">Logged Out</span>
+      {% else %}
+        <span class="badge bg-warning text-dark">No Session</span>
       {% endif %}
     </div>
   </div>
-  <div class="row mt-2">
-    <div class="col-md-3"><strong>Start Date:</strong> {{ client_status.start_date }}</div>
-    <div class="col-md-3"><strong>Months Left:</strong> {{ client_status.months_remaining }}</div>
-    <div class="col-md-3"><strong>Paid:</strong> <span class="text-success">₱{{ client_status.paid_balance }}</span></div>
-    <div class="col-md-3"><strong>Balance:</strong> <span class="text-danger">₱{{ client_status.balance }}</span></div>
-  </div>
-  {% if client_status.phase or client_status.section or client_status.lot_number or client_status.pa_number %}
-  <hr>
-  <div class="row mt-2">
-    <div class="col-md-3"><strong>Phase:</strong> {{ client_status.phase|default:"—" }}</div>
-    <div class="col-md-3"><strong>Section:</strong> {{ client_status.section|default:"—" }}</div>
-    <div class="col-md-3"><strong>Lot No.:</strong> {{ client_status.lot_number|default:"—" }}</div>
-    <div class="col-md-3"><strong>P.A. No.:</strong> {{ client_status.pa_number|default:"—" }}</div>
-  </div>
-  {% endif %}
-  {% else %}
-    <p class="text-muted">No plan assigned yet.</p>
-  {% endif %}
 </div>
 </div>
 
-<div class="text-end mb-4">
-  <a href="{% url 'records' %}" class="btn btn-secondary">← Back</a>
-  <a href="{% url 'edit-details' client.pk %}" class="btn btn-warning">Edit Client</a>
-  {% if client_status %}
-  <a href="{% url 'payment-history' client.pk %}" class="btn btn-primary">View Payments</a>
-  {% endif %}
+<div class="d-flex justify-content-end gap-2 mb-4">
+  <a href="{% url 'employee' %}" class="btn btn-secondary">← Back</a>
+  <a href="{% url 'edit-employee' employee.pk %}" class="btn btn-warning">Edit Employee</a>
 </div>
-
 {% endblock %}
