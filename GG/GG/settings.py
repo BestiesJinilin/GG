@@ -120,17 +120,6 @@ BACKUP_RETENTION_DAYS   = 90    # delete backups older than this
 BACKUP_DAILY_HOUR   = 18   # 6 PM (default)
 BACKUP_DAILY_MINUTE = 0
 
-# Email (cloud) backup — Gmail or Outlook, no extra packages needed
-# BACKUP_EMAIL_HOST     = os.environ.get("BACKUP_EMAIL_HOST",     "smtp.gmail.com")
-# BACKUP_EMAIL_PORT     = int(os.environ.get("BACKUP_EMAIL_PORT", "587"))
-# BACKUP_EMAIL_USER     = os.environ.get("BACKUP_EMAIL_USER",     "")
-# BACKUP_EMAIL_PASSWORD = os.environ.get("BACKUP_EMAIL_PASSWORD", "")
-# BACKUP_EMAIL_TO       = os.environ.get("BACKUP_EMAIL_TO",       "")
-BACKUP_EMAIL_HOST     = "smtp.gmail.com"
-BACKUP_EMAIL_PORT     = 587
-BACKUP_EMAIL_USER     = "greengarden.inc2026@gmail.com"
-BACKUP_EMAIL_PASSWORD = "hrqu mxgu pgby plyc"
-BACKUP_EMAIL_TO       = "greengarden.inc2026@gmail.com"
 
 # Auto-logout after 8 hours of inactivity (28800 seconds)
 SESSION_COOKIE_AGE     = 28800
