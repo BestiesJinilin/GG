@@ -5,8 +5,13 @@ name = "pypi"
 
 [packages]
 django = "*"
+# FIX: python-dateutil was imported in views.py (relativedelta) but was never
+# declared as a dependency, meaning a fresh install would crash at runtime.
+python-dateutil = "*"
+openpyxl = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.14"
+python_version = "3.12"
+# FIX: 3.14 does not exist yet; Django 6.0.3 requires >= 3.12.
