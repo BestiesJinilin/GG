@@ -254,41 +254,41 @@ def _cleanup_offline() -> None:
 def _send_email_backup(zip_bytes: bytes, filename: str) -> bool:
     """
     Sends the backup ZIP as an email attachment.
-    Uses Python's built-in smtplib — no extra packages needed.
-
-    Supports Gmail and Outlook:
-      Gmail  → host: smtp.gmail.com,       port: 587
-      Outlook→ host: smtp.office365.com,   port: 587
-
-    Required settings (set via environment variables):
-      BACKUP_EMAIL_HOST     — SMTP host     (default: smtp.gmail.com)
-      BACKUP_EMAIL_PORT     — SMTP port     (default: 587)
-      BACKUP_EMAIL_USER     — sender email  (your Gmail/Outlook address)
-      BACKUP_EMAIL_PASSWORD — App Password  (NOT your real password)
-      BACKUP_EMAIL_TO       — recipient     (who receives the backup email)
+    Credentials fetched from encrypted SystemSecret DB table.
     """
-    host     = getattr(settings, "BACKUP_EMAIL_HOST",     "smtp.gmail.com")
-    port     = getattr(settings, "BACKUP_EMAIL_PORT",     587)
-    user     = getattr(settings, "BACKUP_EMAIL_USER",     "")
-    password = getattr(settings, "BACKUP_EMAIL_PASSWORD", "")
-    to       = getattr(settings, "BACKUP_EMAIL_TO",       "")
-
+    try:
+        from .models import SystemSecret
+        host     = SystemSecret.get("BACKUP_EMAIL_HOST",     "smtp.gmail.com")
+        port     = int(SystemSecret.get("BACKUP_EMAIL_PORT", "587"))
+        user     = SystemSecret.get("BACKUP_EMAIL_USER",     "")
+        password = SystemSecret.get("BACKUP_EMAIL_PASSWORD", "")
+        to       = SystemSecret.get("BACKUP_EMAIL_TO",       "")
+    except Exception as exc:
+        logger.error("[Backup] Failed to load email secrets from DB: %s", exc)
+        return False
+ 
     if not all([user, password, to]):
         logger.warning(
-            "[Backup] Email backup skipped — BACKUP_EMAIL_USER / "
-            "BACKUP_EMAIL_PASSWORD / BACKUP_EMAIL_TO not configured."
+            "[Backup] Email backup skipped — credentials not configured. "
+            "Go to System Settings to set them."
         )
         return False
-
+ 
     try:
+        import smtplib
+        from email import encoders
+        from email.mime.base import MIMEBase
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        import datetime
+ 
         now_str = datetime.datetime.now().strftime("%B %d, %Y %I:%M %p")
-
-        # ── Build the email ────────────────────────────────────────────────
+ 
         msg            = MIMEMultipart()
         msg["From"]    = f"Green Garden Backup <{user}>"
         msg["To"]      = to
         msg["Subject"] = f"[Green Garden] Backup — {now_str}"
-
+ 
         body_text = (
             f"Automated backup from Green Garden cemetery management system.\n\n"
             f"Date     : {now_str}\n"
@@ -298,8 +298,7 @@ def _send_email_backup(zip_bytes: bytes, filename: str) -> bool:
             f"To restore: extract the ZIP and import the CSVs or replace db.sqlite3."
         )
         msg.attach(MIMEText(body_text, "plain"))
-
-        # ── Attach the ZIP ─────────────────────────────────────────────────
+ 
         attachment = MIMEBase("application", "zip")
         attachment.set_payload(zip_bytes)
         encoders.encode_base64(attachment)
@@ -308,27 +307,21 @@ def _send_email_backup(zip_bytes: bytes, filename: str) -> bool:
             f'attachment; filename="{filename}"',
         )
         msg.attach(attachment)
-
-        # ── Send ───────────────────────────────────────────────────────────
+ 
         with smtplib.SMTP(host, port, timeout=30) as server:
             server.ehlo()
             server.starttls()
             server.login(user, password)
             server.send_message(msg)
-
+ 
         logger.info("[Backup] Email sent → %s", to)
         return True
-
+ 
     except smtplib.SMTPAuthenticationError as exc:
-        logger.error(
-            "[Backup] Email auth failed — wrong App Password or 2FA not enabled. %s", exc
-        )
+        logger.error("[Backup] Email auth failed — check App Password in System Settings. %s", exc)
         return False
     except smtplib.SMTPConnectError as exc:
-        logger.error("[Backup] Email connection failed — check internet / firewall. %s", exc)
-        return False
-    except smtplib.SMTPException as exc:
-        logger.error("[Backup] Email SMTP error: %s", exc)
+        logger.error("[Backup] Email connection failed — check internet/firewall. %s", exc)
         return False
     except Exception as exc:
         logger.error("[Backup] Email backup failed (%s): %s", type(exc).__name__, exc)
