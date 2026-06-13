@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Green Garden{% endblock %}</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+      crossorigin="anonymous">
+{% load static %}
+<link rel="stylesheet" href="{% static 'css/homepage.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+
+<body>
+
+<!-- TOP NAVBAR — fixed-top keeps it pinned while scrolling -->
+<nav class="navbar navbar-dark topbar fixed-top px-4">
+  <a class="navbar-brand d-flex align-items-center" href="{% url 'homepage' %}">
+    <img src="{% static 'img/landing/logo.png' %}" height="35" class="me-2" alt="Green Garden Logo">
+    <span class="fw-bold text-white">Green Garden</span>
+  </a>
+  <div class="ms-auto d-flex align-items-center">
+    <div class="me-4 text-end text-white">
+      <div id="date" class="small"></div>
+      <div id="time" class="fw-bold"></div>
+    </div>
+    <div class="me-2 text-end">
+      <span class="admin-box">{{ user.username|title }}</span>
+      <br>
+      <small class="text-white opacity-75" style="font-size:12px;">
+        {% if user.is_superuser or user.username == "admin" %}ADMIN
+        {% else %}{{ user.userlog.role|default:"—" }}
+        {% endif %}
+      </small>
+    </div>
+    <form method="POST" action="{% url 'logout' %}" class="ms-2">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-danger px-4">Logout</button>
+    </form>
+  </div>
+</nav>
+
+<!-- Spacer: pushes everything below the 60px fixed topbar -->
+<div style="height:60px;"></div>
+
+<div class="d-flex">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <ul class="nav flex-column">
+    <li class="nav-item">
+      <a class="nav-link {% block nav_dashboard %}{% endblock %}"
+         href="{% url 'homepage' %}">Dashboard</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% block nav_add_client %}{% endblock %}"
+         href="{% url 'add-client' %}">Add Client</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% block nav_records %}{% endblock %}"
+         href="{% url 'records' %}">Client Records</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% block nav_lots %}{% endblock %}"
+         href="{% url 'lots' %}">Lots</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% block nav_bookings %}{% endblock %}"
+         href="{% url 'bookings' %}">Bookings</a>
+    </li>
+    {% if is_admin or user.is_superuser or user.username == "admin" %}
+    <li class="nav-item">
+      <a class="nav-link {% block nav_employee %}{% endblock %}"
+         href="{% url 'employee' %}">Employee</a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link {% block nav_monitor %}{% endblock %}"
+         href="{% url 'monitor' %}">Monitor</a>
+    </li>
+    {% endif %}
+  </ul>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="{% block wrapper_class %}content{% endblock %}">
+  {% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% block content %}{% endblock %}
+</div>
+</div>
+
+{% block modals %}{% endblock %}
+
+<!-- RESTRICTED ACCESS MODAL -->
+<div class="modal fade" id="restrictedModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog modal-sm modal-dialog-centered">
+<div class="modal-content border-0 shadow">
+  <div class="modal-header bg-warning text-dark border-0">
+    <h5 class="modal-title fw-bold">⚠️ Access Restricted</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body text-center py-4">
+    <div style="font-size:2.5rem">🔒</div>
+    <p class="mt-3 mb-1 fw-semibold" id="restricted-msg">
+      You don't have permission to perform this action.
+    </p>
+    <p class="text-muted small mb-0">Please contact your administrator for access.</p>
+  </div>
+  <div class="modal-footer border-0 justify-content-center pb-4">
+    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+  </div>
+</div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+
+<div id="gg-user-data"
+     data-is-admin="{{ user.is_superuser|yesno:'true,false' }}"
+     data-username="{{ user.username }}"
+     data-role="{{ user.userlog.role|default:'' }}"
+     style="display:none"></div>
+
+<script>
+(function () {
+  const el = document.getElementById('gg-user-data');
+  const d  = el ? el.dataset : {};
+  window.GG_USER = {
+    isAdmin:          d.isAdmin === 'true' || d.username === 'admin',
+    isGeneralStaff:   d.role === 'General Staff',
+    isFinancialStaff: d.role === 'Financial Staff',
+  };
+})();
+
+function requireRole(roles, message) {
+  if (GG_USER.isAdmin) return true;
+  const list = Array.isArray(roles) ? roles : [roles];
+  const ok = list.some(r =>
+    (r === 'general_staff'   && GG_USER.isGeneralStaff) ||
+    (r === 'financial_staff' && GG_USER.isFinancialStaff)
+  );
+  if (!ok) {
+    const msgEl = document.getElementById('restricted-msg');
+    if (msgEl) msgEl.textContent = message || "You don't have permission to perform this action.";
+    const modal = document.getElementById('restrictedModal');
+    if (modal) bootstrap.Modal.getOrCreateInstance(modal).show();
+    return false;
+  }
+  return true;
+}
+
+(function () {
+  const dateEl = document.getElementById("date");
+  const timeEl = document.getElementById("time");
+  if (!dateEl || !timeEl) return;
+  function updateClock() {
+    const now = new Date();
+    dateEl.textContent = now.toLocaleDateString();
+    timeEl.textContent = now.toLocaleTimeString();
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+})();
+</script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,212 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Client Records — Green Garden{% endblock %}
+{% block nav_records %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4>Client Records</h4>
+  <div>
+    <a href="{% url 'export-records' %}" class="btn btn-outline-success">📥 Export Excel</a>
+    <a href="{% url 'add-client' %}"
+     class="btn btn-primary"
+     onclick="return requireRole('general_staff', 'Only General Staff can add new clients.')">
+    + Add New Client
+    </a>
+  </div>
+</div>
+
+<!-- Search -->
+<form method="GET" class="d-flex mb-3" style="max-width:400px;">
+  <input type="text" name="q" class="form-control me-2"
+         placeholder="Search by name, contact, plan…"
+         value="{{ query }}">
+  <button class="btn btn-primary">Search</button>
+</form>
+
+<div class="table-responsive">
+<table class="table table-hover table-bordered" id="clientTable">
+  <thead class="table-dark">
+    <tr>
+      <th>ID</th>
+      <th>Full Name</th>
+      <th>Contact</th>
+      <th>Civil Status</th>
+      <th>Date of Birth</th>
+      <th>Plan</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for data in client %}
+    <tr id="client-row-{{ data.pk }}">
+      <td>{{ data.pk }}</td>
+      <td>{{ data.full_name }}</td>
+      <td>{{ data.client_contact_number }}</td>
+      <td>{{ data.client_civil_status }}</td>
+      <td>{{ data.client_date_birth }}</td>
+      <td>
+        {% with status=data.clientstatus_set.first %}
+          {% if status %}{{ status.plan }}{% else %}<span class="text-muted">No plan</span>{% endif %}
+        {% endwith %}
+      </td>
+      <td>
+        {% with status=data.clientstatus_set.first %}
+          {% if status.plan == "No Plan" %}
+            <span class="badge bg-warning text-dark">Inactive</span>
+          {% elif status.status %}
+            <span class="badge bg-success">Active</span>
+          {% else %}
+            <span class="badge bg-secondary">Completed</span>
+          {% endif %}
+        {% endwith %}
+      </td>
+      <td>
+        <!-- View — all roles -->
+        <a href="{% url 'client-details' data.pk %}" class="btn btn-sm btn-info">View</a>
+
+        <!-- Edit — General Staff + Admin -->
+        <a href="{% url 'edit-details' data.pk %}"
+           class="btn btn-sm btn-warning"
+           onclick="return requireRole('general_staff', 'Only General Staff can edit client records.')">
+          Edit
+        </a>
+
+        <!-- Delete — General Staff + Admin -->
+        <button class="btn btn-sm btn-danger delete-btn"
+                data-pk="{{ data.pk }}"
+                data-name="{{ data.full_name }}">
+          Delete
+        </button>
+
+        <!-- Payment — Financial Staff/Admin → summary, General Staff → view only -->
+        {% if is_admin or is_financial_staff %}
+        <a href="{% url 'add-payment' data.pk %}" class="btn btn-sm btn-success">
+          Payment
+        </a>
+        {% else %}
+        <a href="{% url 'payment-history' data.pk %}" class="btn btn-sm btn-success">
+          Payment
+        </a>
+        {% endif %}
+
+        <!-- Plan — Financial Staff + Admin -->
+        <a href="{% url 'plan' data.pk %}"
+           class="btn btn-sm btn-primary"
+           onclick="return requireRole('financial_staff', 'Only Financial Staff can manage plans.')">
+          Plan
+        </a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="8" class="text-center text-muted">No clients found.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
+
+
+{% block modals %}
+<!-- DELETE CONFIRMATION MODAL -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog">
+<div class="modal-content">
+  <div class="modal-header bg-danger text-white">
+    <h5 class="modal-title">Confirm Deletion</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p>You are about to permanently delete:</p>
+    <p class="fw-bold fs-5" id="delete-client-name"></p>
+    <p class="text-danger small">
+      This will also remove all beneficiaries, plan, and payment records.
+      This action <strong>cannot be undone</strong>.
+    </p>
+    <label class="form-label mt-2">Enter 4-digit PIN to confirm</label>
+    <input type="password" id="deletePinInput" class="form-control"
+           placeholder="Enter PIN" autocomplete="off"
+           inputmode="numeric" maxlength="4">
+    <div id="deletePinError" class="text-danger small mt-2 d-none"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button class="btn btn-danger" id="confirmDeleteBtn">Delete Client</button>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+let deleteTargetPk = null;
+const deleteModal  = new bootstrap.Modal(document.getElementById("deleteModal"));
+
+document.querySelectorAll(".delete-btn").forEach(btn => {
+  btn.addEventListener("click", function () {
+    // Role check first
+    if (!requireRole('general_staff', 'Only General Staff can delete client records.')) return;
+
+    deleteTargetPk = this.dataset.pk;
+    document.getElementById("delete-client-name").textContent = this.dataset.name;
+    document.getElementById("deletePinInput").value           = "";
+    document.getElementById("deletePinError").classList.add("d-none");
+    document.getElementById("confirmDeleteBtn").disabled      = false;
+    document.getElementById("confirmDeleteBtn").textContent   = "Delete Client";
+    deleteModal.show();
+  });
+});
+
+document.getElementById("confirmDeleteBtn").addEventListener("click", function () {
+  const pin   = document.getElementById("deletePinInput").value;
+  const errEl = document.getElementById("deletePinError");
+
+  if (!pin) {
+    errEl.textContent = "Please enter your PIN.";
+    errEl.classList.remove("d-none");
+    return;
+  }
+
+  const btn = this;
+  btn.disabled    = true;
+  btn.textContent = "Deleting…";
+
+  fetch(`/delete-client/${deleteTargetPk}/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-CSRFToken":  "{{ csrf_token }}",
+    },
+    body: `pin=${encodeURIComponent(pin)}`,
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const row = document.getElementById(`client-row-${deleteTargetPk}`);
+      if (row) row.remove();
+      deleteModal.hide();
+      const tbody = document.querySelector("#clientTable tbody");
+      if (tbody && tbody.querySelectorAll("tr").length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted">No clients found.</td></tr>`;
+      }
+    } else {
+      errEl.textContent = data.error || "Deletion failed.";
+      errEl.classList.remove("d-none");
+      btn.disabled    = false;
+      btn.textContent = "Delete Client";
+    }
+  })
+  .catch(() => {
+    errEl.textContent = "Network error. Please try again.";
+    errEl.classList.remove("d-none");
+    btn.disabled    = false;
+    btn.textContent = "Delete Client";
+  });
+});
+</script>
+{% endblock %}

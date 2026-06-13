@@ -1,0 +1,206 @@
+{% extends 'app/base.html' %}
+{% load humanize %}
+{% block title %}Client Profile — Green Garden{% endblock %}
+{% block nav_records %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h3 class="mb-0">Client Profile</h3>
+  <div class="d-flex gap-2 no-print">
+    <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">🖨️ Print</button>
+    <a href="{% url 'records' %}" class="btn btn-secondary btn-sm">← Back</a>
+  </div>
+</div>
+
+<div class="print-only mb-3">
+  <h5>Green Garden — Client Profile</h5>
+  <small>Printed: <span id="client-print-date"></span></small><hr>
+</div>
+
+<!-- Personal Information -->
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <h5 class="mb-3">Personal Information</h5>
+  <div class="row">
+    <div class="col-md-4"><strong>First Name:</strong> {{ client.client_first_name }}</div>
+    <div class="col-md-4"><strong>Middle Name:</strong> {{ client.client_middle_name|default:"—" }}</div>
+    <div class="col-md-4"><strong>Last Name:</strong> {{ client.client_last_name }}</div>
+  </div>
+  <div class="row mt-2">
+    <div class="col-md-6"><strong>Address:</strong> {{ client.client_address }}</div>
+    <div class="col-md-3"><strong>Contact:</strong> {{ client.client_contact_number }}</div>
+    <div class="col-md-3"><strong>Civil Status:</strong> {{ client.client_civil_status }}</div>
+  </div>
+  <div class="row mt-2">
+    <div class="col-md-3"><strong>Birthdate:</strong> {{ client.client_date_birth }}</div>
+    <div class="col-md-3"><strong>Religion:</strong> {{ client.client_religion }}</div>
+    <div class="col-md-3"><strong>Occupation:</strong> {{ client.client_occupation }}</div>
+    <div class="col-md-3"><strong>Employer:</strong> {{ client.client_employer_name }}</div>
+  </div>
+  <div class="mt-2"><strong>Employer Address:</strong> {{ client.client_employer_address }}</div>
+</div></div>
+
+<!-- Spouse Information -->
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <h5 class="mb-3">Spouse Information</h5>
+  <div class="row">
+    <div class="col-md-4"><strong>Name:</strong> {{ client.client_spouse_name|default:"—" }}</div>
+    <div class="col-md-3"><strong>Birthdate:</strong> {{ client.client_spouse_date_birth|default:"—" }}</div>
+    <div class="col-md-3"><strong>Occupation:</strong> {{ client.client_spouse_occupation|default:"—" }}</div>
+    <div class="col-md-2"><strong>Employer:</strong> {{ client.client_spouse_employer|default:"—" }}</div>
+  </div>
+</div></div>
+
+<!-- Government ID -->
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <h5 class="mb-3">Government ID</h5>
+  <div class="row">
+    <div class="col-md-3"><strong>Type:</strong> {{ client.client_id_type }}</div>
+    <div class="col-md-3"><strong>Number:</strong> {{ client.client_id_number }}</div>
+    <div class="col-md-3"><strong>Date Issued:</strong> {{ client.client_date_issued }}</div>
+    <div class="col-md-3"><strong>Place Issued:</strong> {{ client.client_place_issued }}</div>
+  </div>
+</div></div>
+
+<!-- Beneficiaries -->
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <h5 class="mb-3">Beneficiaries</h5>
+  {% if client.beneficiaries.all %}
+  <ul class="list-group list-group-flush">
+    {% for b in client.beneficiaries.all %}
+    <li class="list-group-item px-0">{{ b.name }} — {{ b.relationship }}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text-muted">No beneficiaries added.</p>
+  {% endif %}
+</div></div>
+
+<!-- Plan & Payment Status — all plans -->
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Plan &amp; Payment Status</h5>
+    {% if all_statuses.count > 1 %}
+    <span class="badge bg-info text-dark">{{ all_statuses.count }} plans</span>
+    {% endif %}
+  </div>
+
+  {% if all_statuses %}
+    {% for cs in all_statuses %}
+    <div class="border rounded p-3 mb-3
+      {% if cs.is_cancelled %}border-danger{% elif cs.status %}border-success{% else %}border-secondary{% endif %}">
+
+      <!-- Plan header -->
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0 fw-bold">{{ cs.plan }}</h6>
+        {% if cs.is_cancelled %}
+          <span class="badge bg-danger">Cancelled</span>
+        {% elif cs.status %}
+          <span class="badge bg-success">Active</span>
+        {% else %}
+          <span class="badge bg-secondary">Completed</span>
+        {% endif %}
+      </div>
+
+      <!-- Core details -->
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Monthly:</strong> ₱{{ cs.monthly_payment|floatformat:2|intcomma }}</div>
+        <div class="col-md-3"><strong>Duration:</strong> {{ cs.duration }} months</div>
+        <div class="col-md-3"><strong>Start Date:</strong> {{ cs.start_date }}</div>
+        <div class="col-md-3"><strong>Months Left:</strong> {{ cs.months_remaining }}</div>
+      </div>
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Paid:</strong> <span class="text-success">₱{{ cs.paid_balance|floatformat:2|intcomma }}</span></div>
+        <div class="col-md-3"><strong>Balance:</strong> <span class="text-danger">₱{{ cs.balance|floatformat:2|intcomma }}</span></div>
+        <div class="col-md-3">
+          <strong>Date Fully Paid:</strong>
+          {% if cs.date_fully_paid %}<span class="text-success">{{ cs.date_fully_paid }}</span>{% else %}—{% endif %}
+        </div>
+      </div>
+
+      <!-- Down payment -->
+      <div class="row mb-2">
+        <div class="col-md-3">
+          <strong>Down Payment:</strong>
+          {% if cs.down_payment %}₱{{ cs.down_payment|floatformat:2|intcomma }}{% else %}—{% endif %}
+        </div>
+        <div class="col-md-3">
+          <strong>Discount:</strong>
+          {% if cs.discount_percent %}{{ cs.discount_percent }}%{% else %}0%{% endif %}
+        </div>
+        <div class="col-md-3">
+          <strong>Eff. Down Payment:</strong>
+          {% if cs.effective_down_payment %}
+            <span class="text-success">₱{{ cs.effective_down_payment|floatformat:2|intcomma }}</span>
+          {% else %}—{% endif %}
+        </div>
+      </div>
+
+      <hr class="my-2">
+
+      <!-- Lot location -->
+      {% if cs.plan == "TCT A/R" %}
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>TCT A/R:</strong> {{ cs.columbarium_type|default:"—" }}</div>
+        <div class="col-md-3"><strong>Level:</strong> {% if cs.columbarium_level %}Level {{ cs.columbarium_level }}{% else %}—{% endif %}</div>
+        <div class="col-md-3"><strong>Tomb No.:</strong> {{ cs.tomb_number|default:"—" }}</div>
+      </div>
+      {% else %}
+      <div class="row mb-2">
+        <div class="col-md-2"><strong>Phase:</strong> {{ cs.phase|default:"—" }}</div>
+        <div class="col-md-2"><strong>Block:</strong> {{ cs.block|default:"—" }}</div>
+        <div class="col-md-2"><strong>Section:</strong> {{ cs.section|default:"—" }}</div>
+        <div class="col-md-3"><strong>Lot No.:</strong> {{ cs.lot_number|default:"—" }}</div>
+        <div class="col-md-3"><strong>P.A. No.:</strong> {{ cs.pa_number|default:"—" }}</div>
+      </div>
+      {% if cs.plan == "THS" or cs.plan == "THTC" %}
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Column Level:</strong> {{ cs.column_level|default:"—" }}</div>
+      </div>
+      {% endif %}
+      {% endif %}
+
+      <div class="row mb-2">
+        <div class="col-md-3"><strong>Contract No.:</strong> {{ cs.contract_number|default:"—" }}</div>
+        <div class="col-md-3"><strong>Interment Date:</strong> {{ cs.interment_date|default:"—" }}</div>
+        <div class="col-md-3"><strong>P.A. Date:</strong> {{ cs.pa_date|default:"—" }}</div>
+      </div>
+
+      {% if cs.is_cancelled %}
+      <div class="alert alert-danger mt-2 mb-2 py-2">
+        <strong>Cancelled on {{ cs.cancellation_date }}:</strong>
+        {{ cs.cancellation_reason|default:"No reason provided." }}
+      </div>
+      {% endif %}
+
+      <!-- View Payments button -->
+      <div class="mt-2 no-print">
+        <a href="{% url 'payment-history' client.pk %}?plan={{ cs.pk }}"
+           class="btn btn-sm {% if cs.status and not cs.is_cancelled %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+           onclick="return requireRole('financial_staff', 'Only Financial Staff can view and manage payments.')">
+          {% if cs.status and not cs.is_cancelled %}View &amp; Pay →{% else %}View Payment History →{% endif %}
+        </a>
+      </div>
+
+    </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-muted">No plan assigned yet. <a href="{% url 'plan' client.pk %}">Assign one →</a></p>
+  {% endif %}
+
+</div></div>
+
+  <!-- Action buttons -->
+  <div class="d-flex gap-2 mb-4 no-print">
+    <a href="{% url 'edit-details' client.pk %}"
+       class="btn btn-warning"
+       onclick="return requireRole('general_staff', 'Only General Staff can edit client records.')">
+      Edit Client
+    </a>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById("client-print-date").textContent = new Date().toLocaleString();
+</script>
+{% endblock %}

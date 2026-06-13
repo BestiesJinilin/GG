@@ -1,0 +1,375 @@
+{% extends 'app/base.html' %}
+{% load humanize %}
+{% block title %}Lots — Green Garden{% endblock %}
+{% block nav_lots %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Lot Records</h4>
+  <a href="{% url 'export-lots' %}" class="btn btn-outline-success btn-sm">📥 Export Excel</a>
+</div>
+
+<!-- Print header -->
+<div class="print-only mb-3">
+  <h5>Green Garden — Lot Records</h5>
+  <small>Printed: <span id="lots-print-date"></span></small>
+</div>
+
+<!-- ── Filter Card ─────────────────────────────────────────────────────────── -->
+<div class="card shadow-sm border-0 mb-4 no-print">
+<div class="card-body">
+
+  <div class="d-flex align-items-center mb-3 gap-2">
+    <h5 class="mb-0">Search Lots</h5>
+    <span class="badge bg-primary" id="filter-mode-badge">Standard</span>
+  </div>
+
+  <form method="GET" id="lots-filter-form">
+  <div class="row g-2 align-items-end">
+
+    <!-- 1. Lot Type — always visible -->
+    <div class="col-md-2">
+      <label class="form-label small fw-semibold mb-1">Lot Type</label>
+      <select name="lot_type" id="lot-type-select" class="form-select form-select-sm">
+        <option value="">All Types</option>
+        {% for choice in plan_choices %}
+        <option value="{{ choice }}" {% if q_type == choice %}selected{% endif %}>{{ choice }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- 2. Phase / Block / Section — hidden for TCT A/R -->
+    <div class="col-md-2" id="field-phase">
+      <label class="form-label small fw-semibold mb-1">Phase</label>
+      <input type="text" name="phase" class="form-control form-control-sm"
+             placeholder="e.g. P-1" value="{{ q_phase }}">
+    </div>
+    <div class="col-md-2" id="field-block">
+      <label class="form-label small fw-semibold mb-1">Block</label>
+      <input type="text" name="block" class="form-control form-control-sm"
+             placeholder="e.g. B-1" value="{{ q_block }}">
+    </div>
+    <div class="col-md-1" id="field-section">
+      <label class="form-label small fw-semibold mb-1">Section</label>
+      <input type="text" name="section" class="form-control form-control-sm"
+             placeholder="e.g. S-A" value="{{ q_section }}">
+    </div>
+
+    <!-- 3a. Lot No. — standard lots only -->
+    <div class="col-md-1" id="field-lot-number">
+      <label class="form-label small fw-semibold mb-1">Lot No.</label>
+      <input type="text" name="lot_number" class="form-control form-control-sm"
+             placeholder="e.g. L-12" value="{{ q_lot }}">
+    </div>
+
+    <!-- 3b. Column Level — THS / THTC only -->
+    <div class="col-md-1 d-none" id="field-column-level">
+      <label class="form-label small fw-semibold mb-1 text-primary">Column</label>
+      <input type="text" name="column_level" class="form-control form-control-sm"
+             placeholder="e.g. A" value="{{ q_column_level }}">
+    </div>
+
+    <!-- 4. Columbarium fields — TCT A/R only -->
+    <div class="col-md-2 d-none" id="field-columbarium-type">
+      <label class="form-label small fw-semibold mb-1 text-info">TCT A/R</label>
+      <select name="columbarium_type" class="form-select form-select-sm">
+        <option value="">All Types</option>
+        <option value="Condo"   {% if q_columbarium_type == "Condo" %}selected{% endif %}>Condo</option>
+        <option value="Niche 1" {% if q_columbarium_type == "Niche 1" %}selected{% endif %}>Niche 1</option>
+        <option value="Niche 2" {% if q_columbarium_type == "Niche 2" %}selected{% endif %}>Niche 2</option>
+      </select>
+    </div>
+    <div class="col-md-1 d-none" id="field-columbarium-level">
+      <label class="form-label small fw-semibold mb-1 text-info">Level</label>
+      <select name="columbarium_level" class="form-select form-select-sm">
+        <option value="">All</option>
+        <option value="1" {% if q_columbarium_level == "1" %}selected{% endif %}>Level 1</option>
+        <option value="2" {% if q_columbarium_level == "2" %}selected{% endif %}>Level 2</option>
+        <option value="3" {% if q_columbarium_level == "3" %}selected{% endif %}>Level 3</option>
+        <option value="4" {% if q_columbarium_level == "4" %}selected{% endif %}>Level 4</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-none" id="field-tomb-number">
+      <label class="form-label small fw-semibold mb-1 text-info">Tomb No.</label>
+      <input type="text" name="tomb_number" class="form-control form-control-sm"
+             placeholder="e.g. T-01" value="{{ q_tomb_number }}">
+    </div>
+
+    <!-- 5. Status — always visible -->
+    <div class="col-md-2">
+      <label class="form-label small fw-semibold mb-1">Status</label>
+      <select name="status" class="form-select form-select-sm">
+        <option value="">All</option>
+        <option value="Active"    {% if q_status == "Active" %}selected{% endif %}>Active</option>
+        <option value="Completed" {% if q_status == "Completed" %}selected{% endif %}>Completed</option>
+        <option value="Cancelled" {% if q_status == "Cancelled" %}selected{% endif %}>Cancelled</option>
+      </select>
+    </div>
+
+    <!-- 6. Buttons — always visible -->
+    <div class="col-auto d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm px-3">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+             class="me-1" viewBox="0 0 16 16">
+          <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1
+                   1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242
+                   1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
+        </svg>
+        Search
+      </button>
+      <a href="{% url 'lots' %}" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
+    </div>
+
+  </div><!-- /row -->
+
+  <!-- Active filter summary -->
+  <div id="active-filters" class="mt-2 d-none">
+    <small class="text-muted">Active filters:
+      <span id="active-filter-tags" class="ms-1"></span>
+    </small>
+  </div>
+
+  </form>
+</div>
+</div>
+
+<!-- ── Results ─────────────────────────────────────────────────────────────── -->
+<div class="card shadow-sm border-0">
+<div class="card-body p-0">
+  <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+    <h6 class="mb-0 fw-semibold">
+      {{ lots|length }} record{{ lots|length|pluralize }} found
+    </h6>
+  </div>
+  <div class="table-responsive">
+  <table class="table table-hover table-bordered align-middle mb-0" style="font-size:.83rem; min-width:1500px;">
+    <thead class="table-dark">
+      <tr>
+        <th class="text-center" style="width:40px">#</th>
+        <th>Lot Type</th>
+        <th>Phase</th>
+        <th>Block</th>
+        <th>Section</th>
+        <th>Lot No.</th>
+        <th>Column Lvl</th>
+        <th>P.A. No.</th>
+        <th>Contract No.</th>
+        <th>Discount</th>
+        <th>Eff. Down Pmt</th>
+        <th>Interment Date</th>
+        <th>Date Fully Paid</th>
+        <th>P.A. Date</th>
+        <th>TCT A/R</th>
+        <th>Col. Level</th>
+        <th>Tomb No.</th>
+        <th>Lot Owner</th>
+        <th class="text-center">Status</th>
+        <th class="no-print text-center">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for lot in lots %}
+      <tr class="{% if lot.is_cancelled %}table-secondary text-muted{% endif %}">
+        <td class="text-center">{{ forloop.counter }}</td>
+        <td class="fw-semibold">{{ lot.plan }}</td>
+        <td>{{ lot.phase|default:"—" }}</td>
+        <td>{{ lot.block|default:"—" }}</td>
+        <td>{{ lot.section|default:"—" }}</td>
+        <td>{{ lot.lot_number|default:"—" }}</td>
+        <td>
+          {% if lot.plan == "THS" or lot.plan == "THTC" %}
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25">
+              {{ lot.column_level|default:"—" }}
+            </span>
+          {% else %}
+            <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+        <td>{{ lot.pa_number|default:"—" }}</td>
+        <td>{{ lot.contract_number|default:"—" }}</td>
+        <td>
+          {% if lot.discount_percent %}
+            <span class="text-warning fw-semibold">{{ lot.discount_percent }}%</span>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if lot.effective_down_payment %}
+            ₱{{ lot.effective_down_payment|floatformat:2|intcomma }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>{{ lot.interment_date|default:"—" }}</td>
+        <td>
+          {% if lot.date_fully_paid %}
+            <span class="text-success fw-semibold">{{ lot.date_fully_paid }}</span>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>{{ lot.pa_date|default:"—" }}</td>
+        <td>{{ lot.columbarium_type|default:"—" }}</td>
+        <td>
+          {% if lot.columbarium_level %}
+            Level {{ lot.columbarium_level }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td>{{ lot.tomb_number|default:"—" }}</td>
+        <td>
+          <a href="{% url 'client-details' lot.client.pk %}" class="text-decoration-none fw-semibold">
+            {{ lot.client.full_name }}
+          </a>
+        </td>
+        <td class="text-center">
+          {% if lot.is_cancelled %}
+            <span class="badge bg-danger">Cancelled</span>
+          {% elif lot.status %}
+            <span class="badge bg-success">Active</span>
+          {% else %}
+            <span class="badge bg-secondary">Completed</span>
+          {% endif %}
+        </td>
+        <td class="text-center text-nowrap no-print">
+          <a href="{% url 'payment-history' lot.client.pk %}" class="btn btn-sm btn-outline-info py-0 px-2">Payment</a>
+          <a href="{% url 'plan' lot.client.pk %}" class="btn btn-sm btn-outline-warning py-0 px-2">Plan</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="20" class="text-center text-muted py-5">
+          <div style="font-size:2rem">🔍</div>
+          <div class="mt-1">No lots found matching your filters.</div>
+          <a href="{% url 'lots' %}" class="btn btn-sm btn-outline-secondary mt-2">Clear filters</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.getElementById("lots-print-date").textContent = new Date().toLocaleString();
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Filter group definitions
+   Each entry: { fields: [el ids to SHOW], clear: [el ids to HIDE+CLEAR] }
+───────────────────────────────────────────────────────────────────────────── */
+const GROUPS = {
+  standard: {
+    label:  "Standard",
+    badge:  "bg-primary",
+    show:   ["field-phase","field-block","field-section","field-lot-number"],
+    hide:   ["field-column-level","field-columbarium-type","field-columbarium-level","field-tomb-number"],
+  },
+  ths: {
+    label:  "THS / THTC",
+    badge:  "bg-info text-dark",
+    show:   ["field-phase","field-block","field-section","field-column-level"],
+    hide:   ["field-lot-number","field-columbarium-type","field-columbarium-level","field-tomb-number"],
+  },
+  columbarium: {
+    label:  "Columbarium",
+    badge:  "bg-secondary",
+    show:   ["field-columbarium-type","field-columbarium-level","field-tomb-number"],
+    hide:   ["field-phase","field-block","field-section","field-lot-number","field-column-level"],
+  },
+};
+
+const TYPE_TO_GROUP = {
+  "THS":    "ths",
+  "THTC":   "ths",
+  "TCT A/R":"columbarium",
+};
+
+function getGroup(lotType) {
+  return TYPE_TO_GROUP[lotType] || "standard";
+}
+
+function applyGroup(lotType) {
+  const g = GROUPS[getGroup(lotType)];
+
+  // Update mode badge
+  const badge = document.getElementById("filter-mode-badge");
+  badge.textContent   = g.label;
+  badge.className     = "badge " + g.badge;
+
+  // Show fields
+  g.show.forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove("d-none");
+    el.querySelectorAll("input, select").forEach(f => f.disabled = false);
+  });
+
+  // Hide + clear fields
+  g.hide.forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.add("d-none");
+    el.querySelectorAll("input, select").forEach(f => {
+      f.disabled = true;
+      f.value    = "";
+    });
+  });
+
+  updateActiveSummary();
+}
+
+/* Active filter summary strip */
+function updateActiveSummary() {
+  const form      = document.getElementById("lots-filter-form");
+  const container = document.getElementById("active-filters");
+  const tagsEl    = document.getElementById("active-filter-tags");
+
+  const labels = {
+    lot_type:          "Lot Type",
+    phase:             "Phase",
+    block:             "Block",
+    section:           "Section",
+    lot_number:        "Lot No.",
+    column_level:      "Column",
+    columbarium_type:  "TCT A/R",
+    columbarium_level: "Level",
+    tomb_number:       "Tomb No.",
+    status:            "Status",
+  };
+
+  const tags = [];
+  form.querySelectorAll("input:not(:disabled), select:not(:disabled)").forEach(f => {
+    if (f.name && f.value && labels[f.name]) {
+      const display = f.tagName === "SELECT"
+        ? f.options[f.selectedIndex].text
+        : f.value;
+      tags.push(`<span class="badge bg-light text-dark border me-1">${labels[f.name]}: ${display}</span>`);
+    }
+  });
+
+  if (tags.length) {
+    tagsEl.innerHTML = tags.join("");
+    container.classList.remove("d-none");
+  } else {
+    container.classList.add("d-none");
+  }
+}
+
+/* Init */
+const lotTypeSelect = document.getElementById("lot-type-select");
+applyGroup(lotTypeSelect.value);
+
+lotTypeSelect.addEventListener("change", function () {
+  applyGroup(this.value);
+});
+
+/* Update summary on any field change */
+document.getElementById("lots-filter-form")
+  .querySelectorAll("input, select")
+  .forEach(el => el.addEventListener("change", updateActiveSummary));
+</script>
+{% endblock %}

@@ -1,0 +1,476 @@
+{% extends 'app/base.html' %}
+{% block title %}Bookings — Green Garden{% endblock %}
+{% block nav_bookings %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.cal-grid   { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-day-header { text-align:center; font-size:.72rem; font-weight:600; color:#6c757d; padding:4px 0; }
+.cal-day    { text-align:center; padding:6px 2px; border-radius:6px; font-size:.8rem; cursor:default; user-select:none; }
+.cal-day .lbl { font-size:9px; display:block; margin-top:1px; line-height:1; }
+.cal-day.empty     { background:transparent; }
+.cal-day.past      { background:#f8f9fa; color:#adb5bd; }
+.cal-day.available { background:#d1e7dd; color:#0a3622; cursor:pointer; }
+.cal-day.available:hover { background:#a3cfbb; }
+.cal-day.partial   { background:#fff3cd; color:#664d03; cursor:pointer; }
+.cal-day.partial:hover { background:#ffe69c; }
+.cal-day.full      { background:#f8d7da; color:#58151c; cursor:not-allowed; }
+.cal-day.today     { outline:2px solid #0d6efd; outline-offset:-2px; }
+.cal-day.selected  { background:#0d6efd !important; color:#fff !important; }
+.slot-btn  { min-width:88px; font-size:.8rem; }
+.slot-taken { font-size:.8rem; min-width:88px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Bookings</h4>
+  <div class="d-flex gap-2 no-print">
+    <a href="{% url 'export-bookings' %}" class="btn btn-outline-success btn-sm">📥 Export Excel</a>
+    <a href="{% url 'calendar' %}" class="btn btn-outline-primary btn-sm">📅 Full Calendar</a>
+  </div>
+</div>
+<div class="print-only mb-3">
+  <h5>Green Garden — Bookings</h5>
+  <small>Printed: <span id="booking-print-date"></span></small>
+</div>
+
+<!-- ── New Booking ─────────────────────────────────────────────────────── -->
+<div class="card shadow-sm mb-4 no-print"><div class="card-body">
+  <h5 class="mb-4">New Booking</h5>
+
+  {% if form.non_field_errors %}
+  <div class="alert alert-danger">
+    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
+  <form method="POST" action="{% url 'bookings' %}" id="booking-form">
+  {% csrf_token %}
+  <div class="row g-4">
+
+    <!-- LEFT: Calendar + slot picker -->
+    <div class="col-lg-5">
+      <div class="border rounded p-3 mb-3">
+        <div class="cal-header">
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="cal-prev">‹</button>
+          <span class="fw-semibold" id="cal-month-label"></span>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="cal-next">›</button>
+        </div>
+        <div class="cal-grid mb-1">
+          <div class="cal-day-header">Sun</div>
+          <div class="cal-day-header">Mon</div>
+          <div class="cal-day-header">Tue</div>
+          <div class="cal-day-header">Wed</div>
+          <div class="cal-day-header">Thu</div>
+          <div class="cal-day-header">Fri</div>
+          <div class="cal-day-header">Sat</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="d-flex gap-3 flex-wrap mt-3" style="font-size:.75rem;">
+          <span><span class="badge" style="background:#d1e7dd;color:#0a3622;">■</span> Available</span>
+          <span><span class="badge" style="background:#fff3cd;color:#664d03;">■</span> Partial</span>
+          <span><span class="badge" style="background:#f8d7da;color:#58151c;">■</span> Full</span>
+        </div>
+      </div>
+
+      <div id="selected-date-display" class="alert alert-info py-2 mb-3 d-none">
+        📅 <strong id="selected-date-label"></strong>
+      </div>
+      <div id="fully-booked-notice" class="alert alert-danger py-2 mb-3 d-none">
+        ⛔ This date is <strong>fully booked</strong>. Please choose another date.
+      </div>
+
+      <div id="slot-section" class="d-none">
+        <label class="form-label fw-semibold">Select Time Slot</label>
+        <div id="slot-grid" class="d-flex flex-wrap gap-2"></div>
+        <div id="slot-error" class="text-danger small mt-1 d-none">Please select a time slot.</div>
+        {{ form.booking_time }}
+      </div>
+    </div>
+
+    <!-- RIGHT: Form fields -->
+    <div class="col-lg-7">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Client Name <span class="text-danger">*</span></label>
+          {{ form.client_name }}
+          {% if form.client_name.errors %}<div class="text-danger small mt-1">{{ form.client_name.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+          {{ form.contact_number }}
+          {% if form.contact_number.errors %}<div class="text-danger small mt-1">{{ form.contact_number.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Event Type <span class="text-danger">*</span></label>
+          {{ form.event_type }}
+          {% if form.event_type.errors %}<div class="text-danger small mt-1">{{ form.event_type.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">
+            Booking Date <span class="text-danger">*</span>
+            <small class="text-muted fw-normal">(or pick from calendar)</small>
+          </label>
+          {{ form.booking_date }}
+          {% if form.booking_date.errors %}<div class="text-danger small mt-1">{{ form.booking_date.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label">Notes</label>
+          {{ form.notes }}
+        </div>
+        <div class="col-12 mt-2">
+          <button type="submit" class="btn btn-primary px-4" id="save-booking-btn"
+                  onclick="return validateBookingForm() && requireRole('general_staff', 'Only General Staff can add bookings.')">
+            Save Booking
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </form>
+</div></div>
+
+<!-- ── Bookings Table ──────────────────────────────────────────────────── -->
+<div class="card shadow-sm"><div class="card-body">
+  <h5 class="mb-3">All Bookings</h5>
+  <div class="table-responsive">
+  <table class="table table-hover align-middle" id="bookingsTable">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th><th>Client Name</th><th>Contact</th><th>Event</th>
+        <th>Date</th><th>Time</th><th>Notes</th><th>Status</th>
+        <th class="no-print">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in bookings %}
+      <tr id="booking-row-{{ b.pk }}"
+          class="{% if b.status == 'Cancelled' or b.status == 'No Show' %}text-muted{% endif %}">
+        <td>{{ forloop.counter }}</td>
+        <td>{{ b.client_name }}</td>
+        <td>{{ b.contact_number }}</td>
+        <td>
+          <span class="badge {% if b.event_type == 'Viewing' %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+            {{ b.event_type }}
+          </span>
+        </td>
+        <td>{{ b.booking_date }}</td>
+        <td>{{ b.get_booking_time_display }}</td>
+        <td class="text-muted small">{{ b.notes|default:"—" }}</td>
+        <td id="booking-status-{{ b.pk }}">
+          {% if b.status == "Active" %}
+            <span class="badge bg-success">Active</span>
+          {% elif b.status == "Completed" %}
+            <span class="badge bg-info text-dark">Completed</span>
+          {% elif b.status == "Cancelled" %}
+            <span class="badge bg-danger">Cancelled</span>
+            {% if b.cancellation_reason %}
+            <br><small class="text-muted">{{ b.cancellation_reason }}</small>
+            {% endif %}
+          {% elif b.status == "No Show" %}
+            <span class="badge bg-warning text-dark">No Show</span>
+            {% if b.cancellation_reason %}
+            <br><small class="text-muted">{{ b.cancellation_reason }}</small>
+            {% endif %}
+          {% endif %}
+        </td>
+        <td class="no-print text-nowrap" id="booking-action-{{ b.pk }}">
+          {% if b.status == "Active" %}
+            <button class="btn btn-sm btn-danger cancel-booking-btn me-1"
+                    data-pk="{{ b.pk }}" data-client="{{ b.client_name }}">Cancel</button>
+            <button class="btn btn-sm btn-warning no-show-btn"
+                    data-pk="{{ b.pk }}" data-client="{{ b.client_name }}">No Show</button>
+          {% else %}
+            <span class="text-muted small">—</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="9" class="text-center text-muted py-4">No bookings yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div></div>
+{% endblock %}
+
+
+{% block modals %}
+<!-- CANCEL MODAL -->
+<div class="modal fade" id="cancelBookingModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header bg-danger text-white">
+    <h5 class="modal-title">Cancel Booking</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p>Cancelling booking for: <strong id="cancel-booking-client"></strong></p>
+    <div class="mb-3">
+      <label class="form-label">Reason <small class="text-muted">(optional)</small></label>
+      <textarea id="cancelBookingReason" class="form-control" rows="2"
+                placeholder="e.g. Client rescheduled"></textarea>
+    </div>
+    <label class="form-label">Enter 4-digit PIN to confirm</label>
+    <input type="password" id="cancelBookingPinInput" class="form-control"
+           placeholder="Enter PIN" autocomplete="off" inputmode="numeric" maxlength="4">
+    <div id="cancelBookingPinError" class="text-danger small mt-2 d-none"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <button class="btn btn-danger" id="confirmCancelBookingBtn">Confirm Cancellation</button>
+  </div>
+</div></div>
+</div>
+
+<!-- NO SHOW MODAL -->
+<div class="modal fade" id="noShowModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog"><div class="modal-content">
+  <div class="modal-header bg-warning text-dark">
+    <h5 class="modal-title">Mark as No Show</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p>Marking as No Show for: <strong id="no-show-client"></strong></p>
+    <div class="mb-3">
+      <label class="form-label">Reason <small class="text-muted">(optional)</small></label>
+      <textarea id="noShowReason" class="form-control" rows="2"
+                placeholder="e.g. Client did not arrive"></textarea>
+    </div>
+    <label class="form-label">Enter 4-digit PIN to confirm</label>
+    <input type="password" id="noShowPinInput" class="form-control"
+           placeholder="Enter PIN" autocomplete="off" inputmode="numeric" maxlength="4">
+    <div id="noShowPinError" class="text-danger small mt-2 d-none"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    <button class="btn btn-warning text-dark" id="confirmNoShowBtn">Confirm No Show</button>
+  </div>
+</div></div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.getElementById("booking-print-date").textContent = new Date().toLocaleString();
+
+// ── Booked slots ──────────────────────────────────────────────────────────
+const BOOKED_SLOTS = JSON.parse('{{ booked_slots_json|escapejs }}');
+const TOTAL_SLOTS  = 11;
+const TIME_SLOTS   = [
+  ["07:00","7:00 AM"],["08:00","8:00 AM"],["09:00","9:00 AM"],
+  ["10:00","10:00 AM"],["11:00","11:00 AM"],["12:00","12:00 PM"],
+  ["13:00","1:00 PM"],["14:00","2:00 PM"],["15:00","3:00 PM"],
+  ["16:00","4:00 PM"],["17:00","5:00 PM"],
+];
+const MONTH_NAMES = ["January","February","March","April","May","June",
+                     "July","August","September","October","November","December"];
+
+let calYear  = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let selectedDate = "";
+
+function bookedCount(ds)      { return (BOOKED_SLOTS[ds] || []).length; }
+function isBooked(ds, t)      { return (BOOKED_SLOTS[ds] || []).includes(t); }
+function isSlotPast(ds, t)    {
+  const todayStr = fmtDate(new Date());
+  if (ds !== todayStr) return false;
+  const [h, m] = t.split(':').map(Number);
+  const slot = new Date(); slot.setHours(h, m, 0, 0);
+  return slot <= new Date();
+}
+function availableCount(ds)   {
+  return TIME_SLOTS.filter(([v]) => !isBooked(ds, v) && !isSlotPast(ds, v)).length;
+}
+function isFull(ds)     { return availableCount(ds) === 0; }
+function isPartial(ds)  { const a = availableCount(ds); return a > 0 && a < TOTAL_SLOTS; }
+
+function renderCalendar() {
+  const today    = new Date();
+  const todayStr = fmtDate(today);
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const days     = new Date(calYear, calMonth + 1, 0).getDate();
+  document.getElementById("cal-month-label").textContent = `${MONTH_NAMES[calMonth]} ${calYear}`;
+  let html = "";
+  for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const ds   = fmtDate(new Date(calYear, calMonth, d));
+    const past = ds < todayStr;
+    let cls = "cal-day", lbl = "";
+    if (past)            cls += " past";
+    else if (isFull(ds)) { cls += " full";  lbl = '<span class="lbl">Full</span>'; }
+    else if (isPartial(ds)) { cls += " partial"; lbl = `<span class="lbl">${bookedCount(ds)}/${TOTAL_SLOTS}</span>`; }
+    else                 cls += " available";
+    if (ds === todayStr)    cls += " today";
+    if (ds === selectedDate) cls += " selected";
+    const click = (!past && !isFull(ds)) ? `onclick="pickDate('${ds}')"` : "";
+    html += `<div class="${cls}" ${click}>${d}${lbl}</div>`;
+  }
+  document.getElementById("cal-grid").innerHTML = html;
+}
+
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+document.getElementById("cal-prev").addEventListener("click", () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); });
+document.getElementById("cal-next").addEventListener("click", () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); });
+
+function pickDate(ds) {
+  selectedDate = ds;
+  document.getElementById("id_booking_date").value = ds;
+  const d = new Date(ds + "T00:00:00");
+  calYear = d.getFullYear(); calMonth = d.getMonth();
+  renderCalendar(); showSlots(ds);
+}
+
+document.getElementById("id_booking_date").addEventListener("change", function () {
+  if (!this.value) return;
+  selectedDate = this.value;
+  const d = new Date(this.value + "T00:00:00");
+  calYear = d.getFullYear(); calMonth = d.getMonth();
+  renderCalendar(); showSlots(this.value);
+});
+
+function showSlots(ds) {
+  const selDisplay = document.getElementById("selected-date-display");
+  const selLabel   = document.getElementById("selected-date-label");
+  const fullNotice = document.getElementById("fully-booked-notice");
+  const slotSec    = document.getElementById("slot-section");
+  const slotGrid   = document.getElementById("slot-grid");
+  const d = new Date(ds + "T00:00:00");
+  selLabel.textContent = d.toLocaleDateString("en-PH", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+  selDisplay.classList.remove("d-none");
+  if (isFull(ds)) { fullNotice.classList.remove("d-none"); slotSec.classList.add("d-none"); return; }
+  fullNotice.classList.add("d-none"); slotSec.classList.remove("d-none");
+  document.getElementById("id_booking_time").value = "";
+  let html = "";
+  TIME_SLOTS.forEach(([val, label]) => {
+    if (isSlotPast(ds, val)) {
+      html += `<button type="button" class="btn btn-sm btn-secondary slot-past" disabled>${label}<br><small>Past</small></button>`;
+    } else if (isBooked(ds, val)) {
+      html += `<button type="button" class="btn btn-sm btn-danger slot-taken" disabled>${label}<br><small>Booked</small></button>`;
+    } else {
+      html += `<button type="button" class="btn btn-sm btn-outline-success slot-btn" data-val="${val}">${label}<br><small>Available</small></button>`;
+    }
+  });
+  slotGrid.innerHTML = html;
+  slotGrid.querySelectorAll(".slot-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      slotGrid.querySelectorAll(".slot-btn").forEach(b => { b.classList.remove("btn-success"); b.classList.add("btn-outline-success"); });
+      this.classList.remove("btn-outline-success"); this.classList.add("btn-success");
+      document.getElementById("id_booking_time").value = this.dataset.val;
+      document.getElementById("slot-error").classList.add("d-none");
+    });
+  });
+}
+
+function validateBookingForm() {
+  const time = document.getElementById("id_booking_time").value;
+  const date = document.getElementById("id_booking_date").value;
+  if (date && !time) {
+    document.getElementById("slot-error").classList.remove("d-none");
+    document.getElementById("slot-section").scrollIntoView({ behavior:"smooth" });
+    return false;
+  }
+  return true;
+}
+
+renderCalendar();
+(function () {
+  const existing = document.getElementById("id_booking_date").value;
+  if (existing) { selectedDate = existing; showSlots(existing); renderCalendar(); }
+})();
+
+// ── Cancel booking ────────────────────────────────────────────────────────
+let cancelBookingPk = null;
+const cancelBookingModal = new bootstrap.Modal(document.getElementById("cancelBookingModal"));
+
+document.querySelectorAll(".cancel-booking-btn").forEach(btn => {
+  btn.addEventListener("click", function () {
+    if (!requireRole('general_staff', 'Only General Staff can cancel bookings.')) return;
+    cancelBookingPk = this.dataset.pk;
+    document.getElementById("cancel-booking-client").textContent = this.dataset.client;
+    document.getElementById("cancelBookingPinInput").value = "";
+    document.getElementById("cancelBookingReason").value  = "";
+    document.getElementById("cancelBookingPinError").classList.add("d-none");
+    const cb = document.getElementById("confirmCancelBookingBtn");
+    cb.disabled = false; cb.textContent = "Confirm Cancellation";
+    cancelBookingModal.show();
+  });
+});
+
+document.getElementById("confirmCancelBookingBtn").addEventListener("click", function () {
+  const pin = document.getElementById("cancelBookingPinInput").value;
+  const reason = document.getElementById("cancelBookingReason").value;
+  const errEl = document.getElementById("cancelBookingPinError");
+  if (!pin) { errEl.textContent = "Please enter your PIN."; errEl.classList.remove("d-none"); return; }
+  const btn = this; btn.disabled = true; btn.textContent = "Cancelling…";
+  fetch(`/cancel-booking/${cancelBookingPk}/`, {
+    method: "POST",
+    headers: { "Content-Type":"application/x-www-form-urlencoded", "X-CSRFToken":"{{ csrf_token }}" },
+    body: `pin=${encodeURIComponent(pin)}&reason=${encodeURIComponent(reason)}`,
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById(`booking-status-${cancelBookingPk}`).innerHTML = '<span class="badge bg-danger">Cancelled</span>';
+      document.getElementById(`booking-action-${cancelBookingPk}`).innerHTML = '<span class="text-muted small">—</span>';
+      cancelBookingModal.hide();
+    } else {
+      errEl.textContent = data.error || "Failed.";
+      errEl.classList.remove("d-none");
+      btn.disabled = false; btn.textContent = "Confirm Cancellation";
+    }
+  })
+  .catch(() => { errEl.textContent = "Network error."; errEl.classList.remove("d-none"); btn.disabled = false; btn.textContent = "Confirm Cancellation"; });
+});
+
+// ── No Show ───────────────────────────────────────────────────────────────
+let noShowPk = null;
+const noShowModal = new bootstrap.Modal(document.getElementById("noShowModal"));
+
+document.querySelectorAll(".no-show-btn").forEach(btn => {
+  btn.addEventListener("click", function () {
+    if (!requireRole('general_staff', 'Only General Staff can mark bookings as No Show.')) return;
+    noShowPk = this.dataset.pk;
+    document.getElementById("no-show-client").textContent = this.dataset.client;
+    document.getElementById("noShowPinInput").value = "";
+    document.getElementById("noShowReason").value  = "";
+    document.getElementById("noShowPinError").classList.add("d-none");
+    const cb = document.getElementById("confirmNoShowBtn");
+    cb.disabled = false; cb.textContent = "Confirm No Show";
+    noShowModal.show();
+  });
+});
+
+document.getElementById("confirmNoShowBtn").addEventListener("click", function () {
+  const pin    = document.getElementById("noShowPinInput").value;
+  const reason = document.getElementById("noShowReason").value;
+  const errEl  = document.getElementById("noShowPinError");
+  if (!pin) { errEl.textContent = "Please enter your PIN."; errEl.classList.remove("d-none"); return; }
+  const btn = this; btn.disabled = true; btn.textContent = "Processing…";
+  fetch("{% url 'bookings' %}", {
+    method: "POST",
+    headers: { "Content-Type":"application/x-www-form-urlencoded", "X-CSRFToken":"{{ csrf_token }}" },
+    body: `action=no_show&pk=${noShowPk}&pin=${encodeURIComponent(pin)}&reason=${encodeURIComponent(reason)}`,
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById(`booking-status-${noShowPk}`).innerHTML = '<span class="badge bg-warning text-dark">No Show</span>';
+      document.getElementById(`booking-action-${noShowPk}`).innerHTML = '<span class="text-muted small">—</span>';
+      noShowModal.hide();
+    } else {
+      errEl.textContent = data.error || "Failed.";
+      errEl.classList.remove("d-none");
+      btn.disabled = false; btn.textContent = "Confirm No Show";
+    }
+  })
+  .catch(() => { errEl.textContent = "Network error."; errEl.classList.remove("d-none"); btn.disabled = false; btn.textContent = "Confirm No Show"; });
+});
+</script>
+{% endblock %}

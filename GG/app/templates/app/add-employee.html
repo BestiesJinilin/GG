@@ -1,0 +1,141 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Add Employee — Green Garden{% endblock %}
+{% block nav_employee %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Add Employee</h4>
+  <a href="{% url 'employee' %}" class="btn btn-secondary btn-sm">← Back to Employees</a>
+</div>
+
+{% if form.non_field_errors %}
+<div class="alert alert-danger">
+  {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<form method="POST" action="{% url 'add-employee' %}">
+{% csrf_token %}
+
+  <!-- ACCOUNT CREDENTIALS -->
+  <div class="form-section card shadow-sm mb-4">
+  <div class="card-body">
+  <h5 class="mb-3">Account Credentials</h5>
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Username <span class="text-danger">*</span></label>
+      {{ form.username }}
+      {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Password <span class="text-danger">*</span></label>
+      {{ form.password }}
+      {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+      {{ form.password2 }}
+      {% if form.password2.errors %}<div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3 mb-3">
+      <label class="form-label">
+        PIN <span class="text-danger">*</span>
+        <small class="text-muted">(4 digits, used to confirm actions)</small>
+      </label>
+      {{ form.pin }}
+      {% if form.pin.errors %}<div class="text-danger small mt-1">{{ form.pin.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <!-- PERSONAL INFORMATION -->
+  <div class="form-section card shadow-sm mb-4">
+  <div class="card-body">
+  <h5 class="mb-3">Personal Information</h5>
+  <div class="row">
+    <div class="col-md-4 mb-3">
+      <label class="form-label">First Name <span class="text-danger">*</span></label>
+      {{ form.first_name }}
+      {% if form.first_name.errors %}<div class="text-danger small mt-1">{{ form.first_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Middle Name</label>
+      {{ form.middle_name }}
+      {% if form.middle_name.errors %}<div class="text-danger small mt-1">{{ form.middle_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Last Name <span class="text-danger">*</span></label>
+      {{ form.last_name }}
+      {% if form.last_name.errors %}<div class="text-danger small mt-1">{{ form.last_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3 mb-3">
+      <label class="form-label">Date of Birth <span class="text-danger">*</span></label>
+      {{ form.date_of_birth }}
+      {% if form.date_of_birth.errors %}<div class="text-danger small mt-1">{{ form.date_of_birth.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Address <span class="text-danger">*</span></label>
+      {{ form.address }}
+      {% if form.address.errors %}<div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3 mb-3">
+      <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+      {{ form.phone_number }}
+      {% if form.phone_number.errors %}<div class="text-danger small mt-1">{{ form.phone_number.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Email <span class="text-danger">*</span></label>
+      {{ form.email }}
+      {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <!-- EMERGENCY CONTACT -->
+  <div class="form-section card shadow-sm mb-4">
+  <div class="card-body">
+  <h5 class="mb-3">Emergency Contact</h5>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Contact Name <span class="text-danger">*</span></label>
+      {{ form.emergency_contact_name }}
+      {% if form.emergency_contact_name.errors %}<div class="text-danger small mt-1">{{ form.emergency_contact_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-6 mb-3">
+      <label class="form-label">Contact Number <span class="text-danger">*</span></label>
+      {{ form.emergency_contact_number }}
+      {% if form.emergency_contact_number.errors %}<div class="text-danger small mt-1">{{ form.emergency_contact_number.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <!-- EMPLOYMENT DETAILS -->
+  <div class="form-section card shadow-sm mb-4">
+  <div class="card-body">
+  <h5 class="mb-3">Employment Details</h5>
+  <div class="row">
+    <div class="col-md-3 mb-3">
+      <label class="form-label">Role <span class="text-danger">*</span></label>
+      {{ form.role }}
+      {% if form.role.errors %}<div class="text-danger small mt-1">{{ form.role.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4 mb-3">
+      <label class="form-label">Government ID <span class="text-danger">*</span></label>
+      {{ form.government_id }}
+      {% if form.government_id.errors %}<div class="text-danger small mt-1">{{ form.government_id.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  </div>
+  </div>
+
+  <div class="d-flex justify-content-end gap-2 mb-5">
+    <a href="{% url 'employee' %}" class="btn btn-secondary px-4">Cancel</a>
+    <button type="submit" class="btn btn-success px-4">Save Employee</button>
+  </div>
+
+</form>
+{% endblock %}

@@ -1,0 +1,249 @@
+{% extends 'app/base.html' %}
+{% load static %}
+
+{% block title %}Edit Client — Green Garden{% endblock %}
+{% block nav_records %}active{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/addclient.css' %}">
+{% endblock %}
+
+{% block content %}
+<h3 class="mb-4">Edit Client</h3>
+
+{% if form.non_field_errors %}
+<div class="alert alert-danger">
+  {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<form method="POST" action="{% url 'edit-details' client.pk %}">
+{% csrf_token %}
+
+  <div class="form-section">
+  <h5 class="mb-3">Personal Information</h5>
+  <div class="row mb-3">
+    <div class="col-md-4">
+      <label>First Name <span class="text-danger">*</span></label>
+      {{ form.client_first_name }}
+      {% if form.client_first_name.errors %}<div class="text-danger small">{{ form.client_first_name.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-4">
+      <label>Middle Name</label>
+      {{ form.client_middle_name }}
+    </div>
+    <div class="col-md-4">
+      <label>Last Name <span class="text-danger">*</span></label>
+      {{ form.client_last_name }}
+      {% if form.client_last_name.errors %}<div class="text-danger small">{{ form.client_last_name.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <label>Home Address <span class="text-danger">*</span></label>
+      {{ form.client_address }}
+      {% if form.client_address.errors %}<div class="text-danger small">{{ form.client_address.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Contact Number <span class="text-danger">*</span></label>
+      {{ form.client_contact_number }}
+      {% if form.client_contact_number.errors %}<div class="text-danger small">{{ form.client_contact_number.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Civil Status <span class="text-danger">*</span></label>
+      {{ form.client_civil_status }}
+      {% if form.client_civil_status.errors %}<div class="text-danger small">{{ form.client_civil_status.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  <div class="row mb-3">
+    <div class="col-md-3">
+      <label>Date of Birth <span class="text-danger">*</span></label>
+      {{ form.client_date_birth }}
+      {% if form.client_date_birth.errors %}<div class="text-danger small">{{ form.client_date_birth.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Religion <span class="text-danger">*</span></label>
+      {{ form.client_religion }}
+      {% if form.client_religion.errors %}<div class="text-danger small">{{ form.client_religion.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Occupation <span class="text-danger">*</span></label>
+      {{ form.client_occupation }}
+      {% if form.client_occupation.errors %}<div class="text-danger small">{{ form.client_occupation.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Employer Name <span class="text-danger">*</span></label>
+      {{ form.client_employer_name }}
+      {% if form.client_employer_name.errors %}<div class="text-danger small">{{ form.client_employer_name.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  <div class="mb-3">
+    <label>Employer Address <span class="text-danger">*</span></label>
+    {{ form.client_employer_address }}
+    {% if form.client_employer_address.errors %}<div class="text-danger small">{{ form.client_employer_address.errors.0 }}</div>{% endif %}
+  </div>
+  </div>
+
+  <div class="form-section" id="spouse-section">
+    <h5 class="mb-3">
+      Spouse Information
+      <small class="text-muted fw-normal fs-6 ms-2" id="spouse-hint"></small>
+    </h5>
+    <div class="row mb-3">
+      <div class="col-md-4"><label>Name of Spouse</label>{{ form.client_spouse_name }}</div>
+      <div class="col-md-3"><label>Date of Birth</label>{{ form.client_spouse_date_birth }}</div>
+      <div class="col-md-3"><label>Occupation</label>{{ form.client_spouse_occupation }}</div>
+      <div class="col-md-2"><label>Employer</label>{{ form.client_spouse_employer }}</div>
+    </div>
+  </div>
+
+  <div class="form-section">
+  <h5 class="mb-3">Government ID</h5>
+  <div class="row mb-3">
+    <div class="col-md-3">
+      <label>ID Type <span class="text-danger">*</span></label>
+      {{ form.client_id_type }}
+      {% if form.client_id_type.errors %}<div class="text-danger small">{{ form.client_id_type.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>ID Number <span class="text-danger">*</span></label>
+      {{ form.client_id_number }}
+      {% if form.client_id_number.errors %}<div class="text-danger small">{{ form.client_id_number.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Date Issued <span class="text-danger">*</span></label>
+      {{ form.client_date_issued }}
+      {% if form.client_date_issued.errors %}<div class="text-danger small">{{ form.client_date_issued.errors.0 }}</div>{% endif %}
+    </div>
+    <div class="col-md-3">
+      <label>Place Issued <span class="text-danger">*</span></label>
+      {{ form.client_place_issued }}
+      {% if form.client_place_issued.errors %}<div class="text-danger small">{{ form.client_place_issued.errors.0 }}</div>{% endif %}
+    </div>
+  </div>
+  </div>
+
+  <div class="form-section mb-4">
+  <h5 class="mb-3">Beneficiaries</h5>
+  {{ beneficiary_formset.management_form }}
+  {% if beneficiary_formset.non_form_errors %}
+    <div class="alert alert-danger">
+      {% for error in beneficiary_formset.non_form_errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+  {% endif %}
+  <div id="beneficiaries-wrapper">
+    {% for bform in beneficiary_formset %}
+    <div class="row mb-2 beneficiary-row align-items-start">
+      {% for hidden in bform.hidden_fields %}{{ hidden }}{% endfor %}
+      <div class="col-md-5">
+        <label class="form-label small">Name</label>
+        {{ bform.name }}
+        {% if bform.name.errors %}<div class="text-danger small">{{ bform.name.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-md-5">
+        <label class="form-label small">Relationship</label>
+        {{ bform.relationship }}
+        {% if bform.relationship.errors %}<div class="text-danger small">{{ bform.relationship.errors.0 }}</div>{% endif %}
+      </div>
+      <div class="col-md-2 d-flex flex-column justify-content-end">
+        <label class="form-label small invisible">Del</label>
+        <div>
+          {{ bform.DELETE }}
+          <label for="{{ bform.DELETE.id_for_label }}" class="btn btn-sm btn-danger mb-0">Delete</label>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" id="add-beneficiary" class="btn btn-secondary mt-2">Add Beneficiary</button>
+  </div>
+
+  <template id="beneficiary-template">
+    <div class="row mb-2 beneficiary-row align-items-start">
+      <div class="col-md-5">
+        <label class="form-label small">Name</label>
+        {{ beneficiary_formset.empty_form.name }}
+      </div>
+      <div class="col-md-5">
+        <label class="form-label small">Relationship</label>
+        {{ beneficiary_formset.empty_form.relationship }}
+      </div>
+      <div class="col-md-2 d-flex flex-column justify-content-end">
+        <label class="form-label small invisible">Del</label>
+        <button type="button" class="btn btn-sm btn-danger remove-btn">Remove</button>
+      </div>
+    </div>
+  </template>
+
+  <div class="text-end mt-4">
+    <a href="{% url 'records' %}" class="btn btn-secondary px-4">Cancel</a>
+    <button type="submit"
+              class="btn btn-primary px-4"
+              onclick="return requireRole('general_staff', 'Only General Staff can update client records.')">
+        Update Client
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Spouse section toggle ─────────────────────────────────────────────────
+const civilStatusEl = document.getElementById("id_client_civil_status");
+const spouseSection = document.getElementById("spouse-section");
+const spouseHint    = document.getElementById("spouse-hint");
+ 
+const HINTS = {
+  Married:   "(required — living spouse)",
+  Widowed:   "(optional — deceased spouse)",
+  Separated: "(optional — former spouse)",
+};
+ 
+function toggleSpouse() {
+  const status = civilStatusEl.value;
+  if (status === "Single" || status === "") {
+    spouseSection.style.display = "none";
+    spouseSection.querySelectorAll("input").forEach(f => f.value = "");
+  } else {
+    spouseSection.style.display = "";
+    spouseHint.textContent = HINTS[status] || "";
+  }
+}
+ 
+civilStatusEl.addEventListener("change", toggleSpouse);
+toggleSpouse();
+
+document.querySelectorAll('.beneficiary-row input[type="checkbox"]').forEach(cb => {
+  cb.style.display = "none";
+  cb.addEventListener("change", function () {
+    const row   = this.closest(".beneficiary-row");
+    const label = row.querySelector("label.btn-danger");
+    if (this.checked) {
+      row.classList.add("opacity-50");
+      if (label) label.textContent = "Undo";
+    } else {
+      row.classList.remove("opacity-50");
+      if (label) label.textContent = "Delete";
+    }
+  });
+});
+
+document.getElementById("add-beneficiary").addEventListener("click", function () {
+  const wrapper    = document.getElementById("beneficiaries-wrapper");
+  const totalForms = document.getElementById("id_beneficiaries-TOTAL_FORMS");
+  const count      = parseInt(totalForms.value);
+  const html       = document.getElementById("beneficiary-template").innerHTML
+                       .replace(/__prefix__/g, count);
+  wrapper.insertAdjacentHTML("beforeend", html);
+  totalForms.value = count + 1;
+});
+
+document.getElementById("beneficiaries-wrapper").addEventListener("click", function (e) {
+  if (e.target.classList.contains("remove-btn")) {
+    e.target.closest(".beneficiary-row").remove();
+    const totalForms = document.getElementById("id_beneficiaries-TOTAL_FORMS");
+    totalForms.value = parseInt(totalForms.value) - 1;
+  }
+});
+</script>
+{% endblock %}

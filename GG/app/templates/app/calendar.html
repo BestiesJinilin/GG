@@ -1,0 +1,168 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Booking Calendar — Green Garden{% endblock %}
+{% block nav_bookings %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+.cal-cell {
+  width: 14.28%;
+  height: 60px;
+  vertical-align: middle;
+  text-align: center;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity .15s;
+  border-radius: 6px;
+}
+.cal-cell:hover         { opacity: .8; }
+.cal-cell.available     { background: #d1e7dd; color: #0a3622; }
+.cal-cell.partial       { background: #fff3cd; color: #664d03; }
+.cal-cell.booked        { background: #f8d7da; color: #58151c; cursor: default; }
+.cal-cell.today-cell    { outline: 2px solid #0d6efd; outline-offset: -2px; }
+.cal-cell.empty         { background: transparent; cursor: default; }
+.cal-cell.selected      { outline: 3px solid #198754; outline-offset: -3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Booking Calendar</h4>
+  <a href="{% url 'bookings' %}" class="btn btn-secondary btn-sm">← Back to Bookings</a>
+</div>
+
+<div class="row g-4">
+
+  <!-- Calendar -->
+  <div class="col-lg-7">
+  <div class="card shadow-sm">
+  <div class="card-body">
+
+    <!-- Month navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <a href="?month={{ prev_month }}&year={{ prev_year }}{% if selected_date_str %}&date={{ selected_date_str }}{% endif %}"
+         class="btn btn-outline-primary btn-sm">‹ Prev</a>
+      <h5 class="mb-0">{{ month_name }} {{ year }}</h5>
+      <a href="?month={{ next_month }}&year={{ next_year }}{% if selected_date_str %}&date={{ selected_date_str }}{% endif %}"
+         class="btn btn-outline-primary btn-sm">Next ›</a>
+    </div>
+
+    <!-- Day headers -->
+    <table class="table text-center mb-0">
+      <thead>
+        <tr>
+          {% for day_name in day_names %}
+          <th class="text-muted small fw-semibold">{{ day_name }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for week in cal_weeks %}
+        <tr>
+          {% for day in week %}
+          {% if day == 0 %}
+            <td class="cal-cell empty"></td>
+          {% else %}
+            <td class="cal-cell
+                {% if day in booked_dates %}booked
+                {% elif day in partially_booked_dates %}partial
+                {% else %}available{% endif %}
+                {% if today.day == day and today.month == month and today.year == year %}today-cell{% endif %}
+                {% if selected_date and selected_date.day == day and selected_date.month == month %}selected{% endif %}"
+                data-year="{{ year }}"
+                data-month="{{ month }}"
+                data-day="{{ day }}"
+                {% if day in booked_dates %}data-full="true"{% endif %}>
+              {{ day }}
+              {% if day in booked_dates %}
+                <br><small style="font-size:10px">Full</small>
+              {% elif day in partially_booked_dates %}
+                <br><small style="font-size:10px">Partial</small>
+              {% endif %}
+            </td>
+          {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Legend -->
+    <div class="mt-3 d-flex gap-3 flex-wrap">
+      <span><span class="badge" style="background:#d1e7dd;color:#0a3622">■</span> Available</span>
+      <span><span class="badge" style="background:#fff3cd;color:#664d03">■</span> Partially Booked</span>
+      <span><span class="badge" style="background:#f8d7da;color:#58151c">■</span> Fully Booked</span>
+      <span style="outline:2px solid #0d6efd;outline-offset:-2px;padding:1px 6px;border-radius:4px;font-size:.75rem;">■ Today</span>
+    </div>
+
+  </div>
+  </div>
+  </div>
+
+  <!-- Time slot panel -->
+  <div class="col-lg-5">
+  <div class="card shadow-sm">
+  <div class="card-body">
+
+    {% if selected_date %}
+      <h5 class="mb-1">{{ selected_date|date:"F j, Y" }}</h5>
+      <p class="text-muted small mb-3">Booking window: 7:00 AM – 5:00 PM</p>
+
+      <div class="list-group">
+        {% for value, label in time_slots %}
+        {% if value in booked_times %}
+        <div class="list-group-item list-group-item-danger d-flex justify-content-between align-items-center">
+          {{ label }}
+          <span class="badge bg-danger">Booked</span>
+        </div>
+        {% else %}
+        <a href="{% url 'bookings' %}?date={{ selected_date_str }}&time={{ value }}"
+           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+          {{ label }}
+          <span class="badge bg-success">Available</span>
+        </a>
+        {% endif %}
+        {% endfor %}
+      </div>
+
+      <div class="mt-3">
+        <a href="{% url 'bookings' %}" class="btn btn-primary w-100">
+          + New Booking for this Date
+        </a>
+      </div>
+
+    {% else %}
+      <div class="text-center text-muted py-5">
+        <div style="font-size:2.5rem">📅</div>
+        <p class="mt-2">Click a date on the calendar to see available time slots.</p>
+      </div>
+    {% endif %}
+
+  </div>
+  </div>
+  </div>
+
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+function selectDate(dateStr) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("date",  dateStr);
+  url.searchParams.set("month", "{{ month }}");
+  url.searchParams.set("year",  "{{ year }}");
+  window.location.href = url.toString();
+}
+
+document.querySelectorAll(".cal-cell:not(.empty):not(.booked)").forEach(function(cell) {
+  cell.addEventListener("click", function() {
+    const y = this.dataset.year;
+    const m = String(this.dataset.month).padStart(2, "0");
+    const d = String(this.dataset.day).padStart(2, "0");
+    selectDate(`${y}-${m}-${d}`);
+  });
+});
+</script>
+{% endblock %}

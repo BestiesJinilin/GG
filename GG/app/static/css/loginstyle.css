@@ -1,0 +1,19 @@
+body{
+    background-image: url("../img/login/bg.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+     
+.login-card{
+    width:100%;
+    max-width:400px;
+    padding:30px;
+    border-radius:10px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
+    background:rgb(195, 197, 189);
+}

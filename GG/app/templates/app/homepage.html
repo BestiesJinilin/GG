@@ -1,0 +1,150 @@
+{% extends 'app/base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard — Green Garden{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Dashboard</h4>
+</div>
+
+<div class="print-only mb-3">
+  <h4>Green Garden — Dashboard Summary</h4>
+  <small>Printed: <span id="print-date"></span></small>
+</div>
+
+<div class="card shadow-sm border-0">
+<div class="card-body">
+
+  <h5 class="mb-3">Overview</h5>
+
+  <div class="row text-center mb-3">
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 bg-light py-3">
+        <h4 class="fw-bold mb-1">{{ total_clients }}</h4>
+        <div class="text-muted small">Total Clients</div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 py-3" style="background:#eafaf1;">
+        <h4 class="fw-bold mb-1 text-success">{{ active_status }}</h4>
+        <div class="text-muted small">Active Plans</div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 py-3" style="background:#fef9e7;">
+        <h4 class="fw-bold mb-1 text-warning">{{ inactive_count }}</h4>
+        <div class="text-muted small">Inactive (No Plan)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row text-center mb-4">
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 py-3" style="background:#eaf4fb;">
+        <h4 class="fw-bold mb-1 text-info">{{ completed_count }}</h4>
+        <div class="text-muted small">Completed Plans</div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 py-3" style="background:#fdf2f8;">
+        <h4 class="fw-bold mb-1 text-danger">{{ pending_payments }}</h4>
+        <div class="text-muted small">Pending Payments</div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card border-0 bg-light py-3">
+        <h4 class="fw-bold mb-1">₱{{ collected|floatformat:2|intcomma }}</h4>
+        <div class="text-muted small">Total Collected</div>
+      </div>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="row">
+
+    <!-- Recent Payments -->
+    <div class="col-md-6">
+      <h6 class="mb-3">Recent Payments</h6>
+      <ul class="list-group list-group-flush">
+        {% for p in recent_payments %}
+        <li class="list-group-item px-0">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">{{ p.client_status.client.full_name }}</div>
+              <div class="text-muted small">
+                ₱{{ p.amount|floatformat:2|intcomma }} — {{ p.month|date:"F Y" }}
+              </div>
+              <div class="text-muted small">
+                🧑‍💼
+                {% if p.processed_by %}
+                  {% if p.processed_by.is_superuser or p.processed_by.username == "admin" %}
+                    Admin
+                  {% else %}
+                    {{ p.processed_by.userlog.full_name|default:p.processed_by.username }}
+                  {% endif %}
+                {% else %}
+                  —
+                {% endif %}
+              </div>
+            </div>
+            <div class="text-end ms-3">
+              <div class="text-muted small text-nowrap">{{ p.date_paid|date:"M d, Y" }}</div>
+              <div class="text-muted small text-nowrap">{{ p.date_paid|date:"g:i A" }}</div>
+            </div>
+          </div>
+        </li>
+        {% empty %}
+        <li class="list-group-item px-0 text-muted">No payments recorded yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="col-md-6">
+      <h6 class="mb-3">Recent Activity</h6>
+      <ul class="list-group list-group-flush">
+        {% for log in recent_activity %}
+        <li class="list-group-item px-0">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="fw-semibold">{{ log.staff_name }}</div>
+              <div class="text-muted small">
+                <span class="badge
+                  {% if log.action == 'Login' %}bg-success
+                  {% elif log.action == 'Logout' %}bg-secondary
+                  {% elif log.action == 'Add Payment' %}bg-primary
+                  {% elif 'Cancel' in log.action %}bg-danger
+                  {% elif 'Delete' in log.action %}bg-danger
+                  {% else %}bg-info text-dark{% endif %}
+                  me-1">{{ log.action }}</span>
+                {% if log.detail %}
+                  <span class="text-muted">{{ log.detail }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="text-end ms-3">
+              <div class="text-muted small text-nowrap">{{ log.timestamp|date:"M d, Y" }}</div>
+              <div class="text-muted small text-nowrap">{{ log.timestamp|date:"g:i A" }}</div>
+            </div>
+          </div>
+        </li>
+        {% empty %}
+        <li class="list-group-item px-0 text-muted">No activity recorded yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+  </div>
+
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById("print-date").textContent = new Date().toLocaleString();
+</script>
+{% endblock %}

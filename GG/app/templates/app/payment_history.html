@@ -1,0 +1,338 @@
+{% extends 'app/base.html' %}
+{% load humanize %}
+
+{% block title %}Payment History — {{ client.full_name }}{% endblock %}
+{% block nav_records %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+  .paid-row   { background-color: #f0fff4 !important; }
+  .unpaid-row { background-color: #fff8f8 !important; }
+  .plan-tab { cursor:pointer; transition: all .15s; }
+  .plan-tab.active-tab { font-weight:600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Payment History</h4>
+  <div class="d-flex gap-2 no-print">
+    <a href="{% url 'export-payment-history' client.pk %}{% if request.GET.plan %}?plan={{ request.GET.plan }}{% endif %}"
+         class="btn btn-outline-success btn-sm">📥 Export Excel</a>
+    <a href="{% url 'add-payment' client.pk %}" class="btn btn-secondary btn-sm">← Back to Summary</a>
+  </div>
+</div>
+
+<div class="print-only mb-3">
+  <h5>Green Garden — Payment History</h5>
+  <small>Printed: <span id="pay-print-date"></span></small><hr>
+</div>
+
+<!-- Client info -->
+<div class="card shadow-sm mb-4"><div class="card-body">
+  <h5 class="mb-3">Client Information</h5>
+  <div class="row">
+    <div class="col-md-4 mb-2"><strong>ID:</strong> {{ client.pk }}</div>
+    <div class="col-md-4 mb-2"><strong>Full Name:</strong> {{ client.full_name }}</div>
+    <div class="col-md-4 mb-2"><strong>Contact:</strong> {{ client.client_contact_number }}</div>
+    <div class="col-md-4 mb-2"><strong>Civil Status:</strong> {{ client.client_civil_status }}</div>
+    <div class="col-md-4 mb-2"><strong>Date of Birth:</strong> {{ client.client_date_birth }}</div>
+    <div class="col-md-4 mb-2"><strong>Address:</strong> {{ client.client_address }}</div>
+  </div>
+</div></div>
+
+<!-- Plan switcher -->
+{% if all_statuses.count > 1 %}
+<div class="card shadow-sm mb-4 no-print"><div class="card-body">
+  <h6 class="mb-3 text-muted small text-uppercase fw-semibold">Select Plan</h6>
+  <div class="d-flex flex-wrap gap-2">
+    {% for s in all_statuses %}
+    <a href="?plan={{ s.pk }}"
+       class="btn btn-sm plan-tab
+         {% if s.pk == client_status.pk %}
+           {% if s.is_cancelled %}btn-danger active-tab
+           {% elif s.status %}btn-success active-tab
+           {% else %}btn-secondary active-tab{% endif %}
+         {% else %}
+           {% if s.is_cancelled %}btn-outline-danger
+           {% elif s.status %}btn-outline-success
+           {% else %}btn-outline-secondary{% endif %}
+         {% endif %}">
+      {{ s.plan }}
+      {% if s.is_cancelled %}<span class="ms-1">✕ Cancelled</span>
+      {% elif s.status %}<span class="ms-1">● Active</span>
+      {% else %}<span class="ms-1">✓ Completed</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</div></div>
+{% endif %}
+
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-2">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fw-bold fs-6">{{ client_status.plan }}</div>
+      <div class="text-muted small">Plan</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fw-bold fs-6">₱{{ client_status.monthly_payment|floatformat:2|intcomma }}</div>
+      <div class="text-muted small">Monthly</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card shadow-sm text-center py-3">
+      {% if client_status.down_payment %}
+      <div class="fw-bold fs-6">₱{{ client_status.effective_down_payment|floatformat:2|intcomma }}</div>
+      <div class="text-muted small">
+        Down Pmt
+        {% if client_status.discount_percent %}
+          <span class="badge bg-warning text-dark ms-1">{{ client_status.discount_percent }}% off</span>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="fw-bold fs-6 text-muted">—</div>
+      <div class="text-muted small">Down Pmt</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fw-bold fs-6 text-success" id="stat-paid">
+        ₱{{ client_status.paid_balance|floatformat:2|intcomma }}
+      </div>
+      <div class="text-muted small">Total Paid</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card shadow-sm text-center py-3">
+      <div class="fw-bold fs-6 text-danger" id="stat-balance">
+        ₱{{ client_status.balance|floatformat:2|intcomma }}
+      </div>
+      <div class="text-muted small">Remaining</div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card shadow-sm text-center py-3">
+      {% if client_status.date_fully_paid %}
+      <div class="fw-bold fs-6 text-success">{{ client_status.date_fully_paid }}</div>
+      <div class="text-muted small">Date Fully Paid</div>
+      {% else %}
+      <div class="fw-bold fs-6 text-muted" id="stat-date-fully-paid">—</div>
+      <div class="text-muted small">Date Fully Paid</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Monthly payment table -->
+<div class="card shadow-sm">
+<div class="card-body">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">
+      Monthly Schedule —
+      <span class="text-muted fs-6">{{ client_status.duration }} months total</span>
+    </h5>
+    <div>
+      <span class="me-2 text-muted small" id="stat-remaining">
+        {{ client_status.months_remaining }} month(s) remaining
+      </span>
+      <span class="badge {% if client_status.is_cancelled %}bg-danger{% elif client_status.status %}bg-success{% else %}bg-secondary{% endif %}"
+            id="plan-status-badge">
+        {% if client_status.is_cancelled %}Cancelled{% elif client_status.status %}Active{% else %}Completed{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- View-only notice for General Staff -->
+  {% if is_general_staff and not is_admin %}
+  <div class="alert alert-info py-2 mb-3 no-print">
+    <small>👁 You are viewing this page in read-only mode. Only Financial Staff can process payments.</small>
+  </div>
+  {% endif %}
+
+  <div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Month</th>
+        <th>Amount</th>
+        <th>Status</th>
+        <th>Date Paid</th>
+        <th class="no-print">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for payment in payments %}
+      <tr class="{% if payment.is_paid %}paid-row{% else %}unpaid-row{% endif %}"
+          id="pay-row-{{ payment.pk }}">
+        <td>{{ forloop.counter }}</td>
+        <td>{{ payment.month|date:"F Y" }}</td>
+        <td>₱{{ payment.amount|floatformat:2|intcomma }}</td>
+        <td id="status-{{ payment.pk }}">
+          {% if payment.is_paid %}
+            <span class="badge bg-success">Paid</span>
+          {% else %}
+            <span class="badge bg-danger">Unpaid</span>
+          {% endif %}
+        </td>
+        <td id="datepaid-{{ payment.pk }}">
+          {% if payment.is_paid %}
+            {{ payment.date_paid|date:"M d, Y g:i A" }}
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td class="no-print" id="action-{{ payment.pk }}">
+          {% if payment.is_paid %}
+            <span class="text-success fw-semibold">✓ Paid</span>
+          {% elif client_status.is_cancelled %}
+            <span class="text-muted small">Cancelled</span>
+          {% else %}
+            <button class="btn btn-sm btn-success pay-btn"
+                    data-id="{{ payment.pk }}"
+                    data-month="{{ payment.month|date:'F Y' }}"
+                    data-amount="{{ payment.amount|floatformat:2 }}">
+              Pay Now
+            </button>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" class="text-center text-muted">No payment records found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block modals %}
+<div class="modal fade" id="payModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog">
+<div class="modal-content">
+  <div class="modal-header">
+    <h5 class="modal-title">Confirm Payment</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p class="mb-1">You are paying for:</p>
+    <ul class="mb-3">
+      <li><strong>Plan:</strong> {{ client_status.plan }}</li>
+      <li><strong>Month:</strong> <span id="modal-month"></span></li>
+      <li><strong>Amount:</strong> ₱<span id="modal-amount"></span></li>
+    </ul>
+    <label class="form-label">Enter 4-digit PIN to confirm</label>
+    <input type="password" id="pinInput" class="form-control"
+           placeholder="Enter PIN" autocomplete="off"
+           inputmode="numeric" maxlength="4">
+    <div id="pinError" class="text-danger small mt-2 d-none"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button class="btn btn-success" id="confirmPayBtn">Confirm Payment</button>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+document.getElementById("pay-print-date").textContent = new Date().toLocaleString();
+
+let selectedPaymentId = null;
+const payModal = new bootstrap.Modal(document.getElementById("payModal"));
+
+document.querySelectorAll(".pay-btn").forEach(btn => {
+  btn.addEventListener("click", function () {
+    // Role check — General Staff sees restriction popup
+    if (!requireRole('financial_staff', 'Only Financial Staff can process payments.')) return;
+
+    selectedPaymentId = this.dataset.id;
+    document.getElementById("modal-month").textContent  = this.dataset.month;
+    document.getElementById("modal-amount").textContent = this.dataset.amount;
+    document.getElementById("pinInput").value           = "";
+    document.getElementById("pinError").classList.add("d-none");
+    const cb = document.getElementById("confirmPayBtn");
+    cb.disabled    = false;
+    cb.textContent = "Confirm Payment";
+    payModal.show();
+  });
+});
+
+document.getElementById("confirmPayBtn").addEventListener("click", function () {
+  const pin   = document.getElementById("pinInput").value;
+  const errEl = document.getElementById("pinError");
+
+  if (!pin) {
+    errEl.textContent = "Please enter your PIN.";
+    errEl.classList.remove("d-none");
+    return;
+  }
+
+  const btn = this;
+  btn.disabled    = true;
+  btn.textContent = "Processing…";
+
+  fetch(window.location.href, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-CSRFToken":  "{{ csrf_token }}",
+    },
+    body: `payment_id=${selectedPaymentId}&pin=${encodeURIComponent(pin)}`,
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      document.getElementById(`status-${selectedPaymentId}`).innerHTML =
+        '<span class="badge bg-success">Paid</span>';
+      document.getElementById(`datepaid-${selectedPaymentId}`).textContent = data.date_paid;
+      document.getElementById(`action-${selectedPaymentId}`).innerHTML =
+        '<span class="text-success fw-semibold">✓ Paid</span>';
+      const row = document.getElementById(`pay-row-${selectedPaymentId}`);
+      row.classList.replace("unpaid-row", "paid-row");
+
+      document.getElementById("stat-paid").textContent    = "₱" + data.paid_balance;
+      document.getElementById("stat-balance").textContent = "₱" + data.balance;
+      document.getElementById("stat-remaining").textContent =
+        data.months_remaining + " month(s) remaining";
+
+      if (data.months_remaining === 0) {
+        const badge = document.getElementById("plan-status-badge");
+        badge.textContent = "Completed";
+        badge.className   = "badge bg-secondary";
+        const dfpEl = document.getElementById("stat-date-fully-paid");
+        if (dfpEl) {
+          dfpEl.textContent = new Date().toLocaleDateString("en-PH", {
+            year: "numeric", month: "short", day: "numeric"
+          });
+          dfpEl.classList.add("text-success");
+        }
+      }
+      payModal.hide();
+    } else {
+      errEl.textContent = data.error || "Payment failed.";
+      errEl.classList.remove("d-none");
+      btn.disabled    = false;
+      btn.textContent = "Confirm Payment";
+    }
+  })
+  .catch(() => {
+    errEl.textContent = "Network error. Please try again.";
+    errEl.classList.remove("d-none");
+    btn.disabled    = false;
+    btn.textContent = "Confirm Payment";
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Monitor — Green Garden{% endblock %}
+{% block nav_monitor %}active{% endblock %}
+
+{% block content %}
+<h4 class="mb-4">Employee Activity Logs</h4>
+
+<!-- ── System Backup Panel ─────────────────────────────────────────────────── -->
+<div class="card shadow-sm border-0 mb-4">
+<div class="card-body">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">🗄️ System Backup</h5>
+    <span class="badge bg-secondary" id="backup-count-badge">Loading…</span>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- LEFT: Backup controls -->
+    <div class="col-md-4">
+      <div class="border rounded p-3 h-100 d-flex flex-column justify-content-between">
+        <div>
+          <div class="text-muted small mb-1">Last Backup</div>
+          <div class="fw-semibold" id="last-backup-time">—</div>
+          <div class="text-muted small" id="last-backup-name" style="word-break:break-all;"></div>
+        </div>
+
+        <div class="mt-3">
+          <button id="backup-now-btn" class="btn btn-success w-100">
+            <span id="backup-btn-text">🗄️ Backup Now</span>
+            <span id="backup-btn-spinner" class="d-none">
+              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+              Backing up…
+            </span>
+          </button>
+          <div id="backup-result" class="mt-2 d-none small"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Recent backup files -->
+    <div class="col-md-8">
+      <div class="border rounded p-3 h-100" style="max-height:220px; overflow-y:auto;">
+        <div class="text-muted small fw-semibold mb-2">Recent Backups
+          <span class="text-muted fw-normal" id="backup-dir"></span>
+        </div>
+        <div id="backup-file-list">
+          <div class="text-muted small">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+<!-- ── End Backup Panel ────────────────────────────────────────────────────── -->
+
+
+<!-- Filters -->
+<div class="card shadow-sm border-0 mb-4 no-print">
+<div class="card-body">
+  <h5 class="mb-3">Filters</h5>
+  <form method="GET">
+  <div class="row g-3">
+    <div class="col-md-3">
+      <label class="form-label small">Employee Name</label>
+      <input type="text" name="name" class="form-control"
+             placeholder="Search name" value="{{ q_name }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small">Action</label>
+      <select name="action" class="form-select">
+        <option value="All" {% if q_action == "All" or not q_action %}selected{% endif %}>All</option>
+        <option value="Login"           {% if q_action == "Login" %}selected{% endif %}>Login</option>
+        <option value="Logout"          {% if q_action == "Logout" %}selected{% endif %}>Logout</option>
+        <option value="Add Client"      {% if q_action == "Add Client" %}selected{% endif %}>Add Client</option>
+        <option value="Edit Record"     {% if q_action == "Edit Record" %}selected{% endif %}>Edit Record</option>
+        <option value="Delete Client"   {% if q_action == "Delete Client" %}selected{% endif %}>Delete Client</option>
+        <option value="Add Plan"        {% if q_action == "Add Plan" %}selected{% endif %}>Add Plan</option>
+        <option value="Cancel Plan"     {% if q_action == "Cancel Plan" %}selected{% endif %}>Cancel Plan</option>
+        <option value="Add Payment"     {% if q_action == "Add Payment" %}selected{% endif %}>Add Payment</option>
+        <option value="Add Booking"     {% if q_action == "Add Booking" %}selected{% endif %}>Add Booking</option>
+        <option value="Cancel Booking"  {% if q_action == "Cancel Booking" %}selected{% endif %}>Cancel Booking</option>
+        <option value="Add Employee"    {% if q_action == "Add Employee" %}selected{% endif %}>Add Employee</option>
+        <option value="Edit Employee"   {% if q_action == "Edit Employee" %}selected{% endif %}>Edit Employee</option>
+        <option value="Delete Employee" {% if q_action == "Delete Employee" %}selected{% endif %}>Delete Employee</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small">Date From</label>
+      <input type="date" name="date_from" class="form-control" value="{{ q_from }}">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small">Date To</label>
+      <input type="date" name="date_to" class="form-control" value="{{ q_to }}">
+    </div>
+    <div class="col-md-2 d-flex align-items-end gap-2">
+      <button class="btn btn-primary w-100">Filter</button>
+      <a href="{% url 'monitor' %}" class="btn btn-secondary w-100">Reset</a>
+    </div>
+  </div>
+  </form>
+</div>
+</div>
+
+<!-- Logs Table -->
+<div class="card shadow-sm border-0">
+<div class="card-body">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Activity Logs</h5>
+    <span class="badge bg-secondary">{{ logs|length }} record{{ logs|length|pluralize }}</span>
+  </div>
+  <div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Staff Name</th>
+        <th>Role</th>
+        <th>Action</th>
+        <th>Detail</th>
+        <th>Date</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td class="fw-semibold">{{ log.staff_name|default:"—" }}</td>
+        <td>
+          {% if log.role %}
+          <span class="badge bg-secondary">{{ log.role }}</span>
+          {% else %}—{% endif %}
+        </td>
+        <td>
+          <span class="badge
+            {% if log.action == 'Login' %}bg-success
+            {% elif log.action == 'Logout' %}bg-secondary
+            {% elif log.action == 'Add Payment' %}bg-primary
+            {% elif log.action == 'Add Client' %}bg-info text-dark
+            {% elif log.action == 'Add Plan' %}bg-info text-dark
+            {% elif log.action == 'Add Booking' %}bg-info text-dark
+            {% elif log.action == 'Add Employee' %}bg-info text-dark
+            {% elif 'Cancel' in log.action %}bg-danger
+            {% elif 'Delete' in log.action %}bg-danger
+            {% elif 'Edit' in log.action %}bg-warning text-dark
+            {% else %}bg-primary{% endif %}">
+            {{ log.action }}
+          </span>
+        </td>
+        <td class="text-muted small">{{ log.detail|default:"—" }}</td>
+        <td class="text-muted small text-nowrap">{{ log.timestamp|date:"M d, Y" }}</td>
+        <td class="text-muted small text-nowrap">{{ log.timestamp|date:"g:i A" }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center text-muted py-4">No activity logs found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+// ── Load backup status on page load ──────────────────────────────────────────
+function loadBackupStatus() {
+  fetch("{% url 'backup-status' %}")
+    .then(r => r.json())
+    .then(data => {
+      // Badge
+      const badge = document.getElementById("backup-count-badge");
+      badge.textContent = data.total
+        ? `${data.total} backup${data.total !== 1 ? "s" : ""} stored`
+        : "No backups yet";
+      badge.className = data.total ? "badge bg-success" : "badge bg-warning text-dark";
+
+      // Last backup
+      if (data.last) {
+        document.getElementById("last-backup-time").textContent = data.last.modified;
+        document.getElementById("last-backup-name").textContent = data.last.filename;
+      } else {
+        document.getElementById("last-backup-time").textContent = "Never";
+      }
+
+      // Directory
+      document.getElementById("backup-dir").textContent = ` — ${data.directory}`;
+
+      // File list
+      const listEl = document.getElementById("backup-file-list");
+      if (data.files.length === 0) {
+        listEl.innerHTML = '<div class="text-muted small">No backup files found.</div>';
+        return;
+      }
+      listEl.innerHTML = data.files.map(f => `
+        <div class="d-flex justify-content-between align-items-center border-bottom py-1" style="font-size:.8rem;">
+          <div>
+            <span class="text-success me-1">📦</span>
+            <span class="text-truncate" style="max-width:260px; display:inline-block; vertical-align:middle;">
+              ${f.name}
+            </span>
+          </div>
+          <div class="text-muted text-nowrap ms-2">${f.size_kb} KB · ${f.modified}</div>
+        </div>
+      `).join("");
+    })
+    .catch(() => {
+      document.getElementById("backup-count-badge").textContent = "Error loading";
+      document.getElementById("backup-count-badge").className   = "badge bg-danger";
+    });
+}
+
+loadBackupStatus();
+
+// ── Backup Now button ─────────────────────────────────────────────────────────
+document.getElementById("backup-now-btn").addEventListener("click", function () {
+  const btn       = this;
+  const btnText   = document.getElementById("backup-btn-text");
+  const spinner   = document.getElementById("backup-btn-spinner");
+  const resultEl  = document.getElementById("backup-result");
+
+  btn.disabled        = true;
+  btnText.classList.add("d-none");
+  spinner.classList.remove("d-none");
+  resultEl.classList.add("d-none");
+
+  fetch("{% url 'backup-now' %}", {
+    method:  "POST",
+    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+  })
+  .then(r => r.json())
+  .then(data => {
+    resultEl.classList.remove("d-none");
+    if (data.success) {
+      const local = data.offline ? "✓ Local" : "✗ Local";
+      const cloud = data.cloud   ? "✓ Cloud" : "✗ Cloud (check token)";
+      resultEl.innerHTML =
+        `<div class="alert alert-success py-2 mb-0">
+           <strong>Backup complete!</strong><br>
+           ${local} &nbsp;|&nbsp; ${cloud}<br>
+           <small class="text-muted">${data.filename}</small>
+         </div>`;
+      loadBackupStatus();   // refresh file list
+    } else {
+      const reason = data.reason || "unknown error";
+      resultEl.innerHTML =
+        `<div class="alert alert-danger py-2 mb-0">
+           Backup failed: <strong>${reason}</strong>
+         </div>`;
+    }
+  })
+  .catch(() => {
+    resultEl.classList.remove("d-none");
+    resultEl.innerHTML =
+      `<div class="alert alert-danger py-2 mb-0">Network error. Try again.</div>`;
+  })
+  .finally(() => {
+    btn.disabled = false;
+    btnText.classList.remove("d-none");
+    spinner.classList.add("d-none");
+  });
+});
+</script>
+{% endblock %}

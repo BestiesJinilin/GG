@@ -1,0 +1,167 @@
+{% extends 'app/base.html' %}
+
+{% block title %}Employees — Green Garden{% endblock %}
+{% block nav_employee %}active{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">Employee Management</h4>
+  <a href="{% url 'add-employee' %}" class="btn btn-primary">+ Add Employee</a>
+</div>
+
+<!-- Search -->
+<form method="GET" class="d-flex mb-3" style="max-width:400px;">
+  <input type="text" name="q" class="form-control me-2"
+         placeholder="Search by name, role…"
+         value="{{ query }}">
+  <button class="btn btn-primary">Search</button>
+</form>
+
+<div class="card shadow-sm border-0">
+<div class="card-body">
+  <div class="table-responsive">
+  <table class="table table-hover align-middle" id="employeeTable">
+    <thead class="table-dark">
+      <tr>
+        <th>#</th>
+        <th>Employee ID</th>
+        <th>Full Name</th>
+        <th>Role</th>
+        <th>Contact</th>
+        <th>Email</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for emp in employees %}
+      <tr id="emp-row-{{ emp.pk }}">
+        <td>{{ forloop.counter }}</td>
+        <td>{{ emp.pk }}</td>
+        <td>{{ emp.full_name }}</td>
+        <td><span class="badge bg-secondary">{{ emp.role }}</span></td>
+        <td>{{ emp.phone_number }}</td>
+        <td>{{ emp.email }}</td>
+        <td>
+          <a href="{% url 'details-employee' emp.pk %}" class="btn btn-sm btn-info">View</a>
+          <a href="{% url 'edit-employee' emp.pk %}" class="btn btn-sm btn-warning">Edit</a>
+          <button class="btn btn-sm btn-danger delete-emp-btn"
+                  data-pk="{{ emp.pk }}"
+                  data-name="{{ emp.full_name }}">Delete</button>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" class="text-center text-muted">No employees found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block modals %}
+<!-- DELETE EMPLOYEE MODAL -->
+<div class="modal fade" id="deleteEmpModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog">
+<div class="modal-content">
+  <div class="modal-header bg-danger text-white">
+    <h5 class="modal-title">Confirm Employee Deletion</h5>
+    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+  </div>
+  <div class="modal-body">
+    <p>You are about to permanently delete:</p>
+    <p class="fw-bold fs-5" id="delete-emp-name"></p>
+    <p class="text-danger small">
+      This will also delete the employee's login account and all logs.
+      This action <strong>cannot be undone</strong>.
+    </p>
+    <label class="form-label mt-2">Enter your 4-digit PIN to confirm</label>
+    {# FIX: inputmode="numeric" preserves leading zeros as a string #}
+    <input type="password"
+           id="deleteEmpPinInput"
+           class="form-control"
+           placeholder="Enter your PIN"
+           autocomplete="off"
+           inputmode="numeric"
+           maxlength="4">
+    <div id="deleteEmpPinError" class="text-danger small mt-2 d-none"></div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+    <button class="btn btn-danger" id="confirmDeleteEmpBtn">Delete Employee</button>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+let deleteEmpPk = null;
+const deleteEmpModal = new bootstrap.Modal(document.getElementById("deleteEmpModal"));
+
+document.querySelectorAll(".delete-emp-btn").forEach(btn => {
+  btn.addEventListener("click", function () {
+    deleteEmpPk = this.dataset.pk;
+    document.getElementById("delete-emp-name").textContent     = this.dataset.name;
+    document.getElementById("deleteEmpPinInput").value         = "";
+    document.getElementById("deleteEmpPinError").classList.add("d-none");
+    document.getElementById("confirmDeleteEmpBtn").disabled    = false;
+    document.getElementById("confirmDeleteEmpBtn").textContent = "Delete Employee";
+    deleteEmpModal.show();
+  });
+});
+
+document.getElementById("confirmDeleteEmpBtn").addEventListener("click", function () {
+  // FIX: keep value as string — don't parseInt/trim so leading zeros survive
+  const pin   = document.getElementById("deleteEmpPinInput").value;
+  const errEl = document.getElementById("deleteEmpPinError");
+
+  if (!pin) {
+    errEl.textContent = "Please enter your PIN.";
+    errEl.classList.remove("d-none");
+    return;
+  }
+
+  const btn = this;
+  btn.disabled    = true;
+  btn.textContent = "Deleting…";
+
+  fetch(`/delete-employee/${deleteEmpPk}/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-CSRFToken":  "{{ csrf_token }}",
+    },
+    body: `pin=${encodeURIComponent(pin)}`,
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const row = document.getElementById(`emp-row-${deleteEmpPk}`);
+      if (row) row.remove();
+      deleteEmpModal.hide();
+      const tbody = document.querySelector("#employeeTable tbody");
+      if (tbody && tbody.querySelectorAll("tr").length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No employees found.</td></tr>`;
+      }
+    } else {
+      errEl.textContent = data.error || "Deletion failed.";
+      errEl.classList.remove("d-none");
+      btn.disabled    = false;
+      btn.textContent = "Delete Employee";
+    }
+  })
+  .catch(() => {
+    errEl.textContent = "Network error. Please try again.";
+    errEl.classList.remove("d-none");
+    btn.disabled    = false;
+    btn.textContent = "Delete Employee";
+  });
+});
+</script>
+{% endblock %}
