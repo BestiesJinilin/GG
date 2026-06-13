@@ -308,3 +308,38 @@ class ActivityLog(models.Model):
  
     def __str__(self):
         return f"{self.staff_name} — {self.action}"
+    
+
+class SystemSecret(models.Model):
+    """
+    Stores encrypted key-value pairs (email credentials, PIN, etc.)
+    Values are encrypted using Django's SECRET_KEY via PBKDF2 + XOR.
+    Admin-only — managed through the System Settings page.
+    """
+    key             = models.CharField(max_length=100, unique=True)
+    encrypted_value = models.TextField(blank=True, default="")
+    label           = models.CharField(max_length=200, blank=True)  # human-readable description
+    updated_at      = models.DateTimeField(auto_now=True)
+ 
+    class Meta:
+        ordering = ["key"]
+ 
+    def __str__(self):
+        return self.key
+ 
+    def get_value(self) -> str:
+        from .crypto import decrypt_value
+        return decrypt_value(self.key, self.encrypted_value)
+ 
+    def set_value(self, plaintext: str) -> None:
+        from .crypto import encrypt_value
+        self.encrypted_value = encrypt_value(self.key, plaintext)
+ 
+    @classmethod
+    def get(cls, key: str, default: str = "") -> str:
+        """Convenience method — fetch and decrypt a value by key."""
+        try:
+            obj = cls.objects.get(key=key)
+            return obj.get_value() or default
+        except cls.DoesNotExist:
+            return default
