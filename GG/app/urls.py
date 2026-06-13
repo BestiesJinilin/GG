@@ -50,4 +50,7 @@ urlpatterns = [
     path("export/payment-history/<int:pk>/", views.export_payment_history_excel, name="export-payment-history"),
     path("export/lots/",                   views.export_lots_excel,             name="export-lots"),
     path("export/records/",                views.export_records_excel,          name="export-records"),
+
+    # ── system/settings ──────────────────────────────────────────
+    path("system/settings/", views.system_settings_view, name="system-settings"),
 ]
