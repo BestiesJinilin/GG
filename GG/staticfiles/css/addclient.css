@@ -1,0 +1,54 @@
+body{
+background:#f4f6f9;
+font-family:Arial, Helvetica, sans-serif;
+}
+
+/* FORM SECTIONS */
+
+.form-section{
+background:white;
+padding:25px;
+border-radius:10px;
+margin-bottom:25px;
+box-shadow:0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* PAGE TITLE */
+
+h3{
+font-weight:600;
+margin-bottom:20px;
+}
+
+/* LABEL STYLE */
+
+label{
+font-size:14px;
+font-weight:500;
+margin-bottom:5px;
+}
+
+/* BENEFICIARY BUTTON */
+
+.beneficiary-row .remove-btn{
+width:100%;
+}
+
+/* INPUT STYLE */
+
+.form-control{
+border-radius:6px;
+}
+
+/* BUTTON SPACING */
+
+#add-beneficiary{
+margin-top:5px;
+}
+
+/* SAVE BUTTON */
+
+button[type="submit"]{
+padding:8px 25px;
+font-weight:500;
+}
