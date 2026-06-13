@@ -1,0 +1,118 @@
+{% extends 'app/base.html' %}
+{% block title %}System Settings — Green Garden{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h4 class="mb-0">⚙️ System Settings</h4>
+  <a href="{% url 'monitor' %}" class="btn btn-secondary btn-sm">← Back to Monitor</a>
+</div>
+
+<!-- Info banner -->
+<div class="alert alert-info mb-4">
+  <strong>🔒 Encrypted Storage</strong> — All values are encrypted using your
+  server's secret key before being saved to the database. They are never stored
+  in plaintext anywhere in the system.
+</div>
+
+{% if message %}
+<div class="alert alert-success">✅ {{ message }}</div>
+{% endif %}
+
+{% if error %}
+<div class="alert alert-danger">❌ {{ error }}</div>
+{% endif %}
+
+<!-- Current Status -->
+<div class="card shadow-sm border-0 mb-4">
+<div class="card-body">
+  <h5 class="mb-3">Current Status</h5>
+  <div class="row g-2">
+    {% for s in secrets %}
+    <div class="col-md-4">
+      <div class="d-flex align-items-center gap-2 border rounded p-2">
+        {% if s.set %}
+          <span class="text-success fs-5">✓</span>
+        {% else %}
+          <span class="text-danger fs-5">✗</span>
+        {% endif %}
+        <div>
+          <div class="fw-semibold small">{{ s.label }}</div>
+          <div class="text-muted" style="font-size:.75rem;">
+            {% if s.set %}Encrypted &amp; saved{% else %}Not set{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</div>
+
+<!-- Update Form -->
+<div class="card shadow-sm border-0">
+<div class="card-body">
+  <h5 class="mb-1">Update Secrets</h5>
+  <p class="text-muted small mb-4">
+    Leave a field blank to keep its current value. Only filled fields will be updated.
+  </p>
+
+  <form method="POST">
+  {% csrf_token %}
+  <div class="row g-3">
+
+    <div class="col-md-6">
+      <label class="form-label">Email SMTP Host</label>
+      <input type="text" name="BACKUP_EMAIL_HOST" class="form-control"
+             placeholder="smtp.gmail.com">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Email SMTP Port</label>
+      <input type="number" name="BACKUP_EMAIL_PORT" class="form-control"
+             placeholder="587">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Email Sender Address</label>
+      <input type="email" name="BACKUP_EMAIL_USER" class="form-control"
+             placeholder="yourgmail@gmail.com">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Email App Password</label>
+      <input type="password" name="BACKUP_EMAIL_PASSWORD" class="form-control"
+             placeholder="Leave blank to keep current">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Email Recipient Address</label>
+      <input type="email" name="BACKUP_EMAIL_TO" class="form-control"
+             placeholder="who receives backup emails">
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">Admin PIN <small class="text-muted">(4 digits)</small></label>
+      <input type="password" name="ADMIN_PIN" class="form-control"
+             placeholder="Leave blank to keep current" maxlength="4" inputmode="numeric">
+    </div>
+
+    <div class="col-12 border-top pt-3 mt-2">
+      <label class="form-label">Enter current Admin PIN to confirm changes</label>
+      <div class="row g-2 align-items-center">
+        <div class="col-md-4">
+          <input type="password" name="pin" class="form-control"
+                 placeholder="4-digit PIN" maxlength="4" inputmode="numeric" required>
+        </div>
+        <div class="col-auto">
+          <button type="submit" class="btn btn-success px-4">
+            🔒 Save &amp; Encrypt
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </form>
+</div>
+</div>
+{% endblock %}
