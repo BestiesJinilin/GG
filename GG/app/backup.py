@@ -1,18 +1,12 @@
 """
-app/backup.py  — Green Garden Backup System (Revised)
+app/backup.py  — Green Garden Backup System
 
 Each backup produces a timestamped ZIP archive containing:
-  clients.csv        — ClientPersonalInfo
-  beneficiaries.csv  — Beneficiary
-  plans.csv          — ClientStatus
-  payments.csv       — Payment
-  bookings.csv       — Booking
-  employees.csv      — UserLog
-  activity_logs.csv  — ActivityLog
-  db.sqlite3         — raw database copy (for full restore)
+  clients.csv, beneficiaries.csv, plans.csv, payments.csv,
+  bookings.csv, employees.csv, activity_logs.csv, db.sqlite3
 
-Local path : GG/backups/          (inside the project, easy access)
-Cloud      : Dropbox via API      (token from environment variable)
+Cloud backup: Gmail / Outlook via SMTP — no 3rd party packages needed.
+Local backup: GG/backups/ — inside the project folder for easy access.
 
 Manual trigger:
   python manage.py backup_now
@@ -22,15 +16,20 @@ import csv
 import datetime
 import io
 import logging
+import smtplib
 import threading
 import zipfile
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-_backup_lock: threading.Lock = threading.Lock()
+_backup_lock: threading.Lock    = threading.Lock()
 _last_backup_time: datetime.datetime | None = None
 
 
@@ -38,7 +37,7 @@ _last_backup_time: datetime.datetime | None = None
 
 def _is_on_cooldown() -> bool:
     global _last_backup_time
-    cooldown = getattr(settings, "BACKUP_COOLDOWN_MINUTES", 15)
+    cooldown = getattr(settings, "BACKUP_COOLDOWN_MINUTES", 5)
     if _last_backup_time is None:
         return False
     elapsed = (datetime.datetime.now() - _last_backup_time).total_seconds() / 60
@@ -53,7 +52,6 @@ def _v(value):
 
 
 def _write_csv(zipf: zipfile.ZipFile, filename: str, headers: list, rows) -> None:
-    """Write a list of rows as a CSV file into the zip archive."""
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(headers)
@@ -65,11 +63,6 @@ def _write_csv(zipf: zipfile.ZipFile, filename: str, headers: list, rows) -> Non
 # ─────────────────────────────── build zip ────────────────────────────────────
 
 def _build_zip(db_path: Path) -> tuple[bytes, str]:
-    """
-    Build the organized ZIP backup.
-    Returns (zip_bytes, timestamp_str).
-    Lazy imports avoid circular import issues at startup.
-    """
     from .models import (
         ActivityLog, Beneficiary, Booking,
         ClientPersonalInfo, ClientStatus, Payment, UserLog,
@@ -215,7 +208,7 @@ def _build_zip(db_path: Path) -> tuple[bytes, str]:
             ],
         )
 
-        # ── 8. Raw database (for full restore if needed) ───────────────────
+        # ── 8. Raw database copy ───────────────────────────────────────────
         zf.write(str(db_path), arcname="db.sqlite3")
 
     return buf.getvalue(), ts
@@ -224,10 +217,6 @@ def _build_zip(db_path: Path) -> tuple[bytes, str]:
 # ─────────────────────────────── offline (local) ──────────────────────────────
 
 def _get_offline_dir() -> Path:
-    """
-    Default: GG/backups/ — inside the project folder for easy access.
-    Override with BACKUP_OFFLINE_DIR in settings.
-    """
     default = settings.BASE_DIR / "backups"
     return Path(getattr(settings, "BACKUP_OFFLINE_DIR", str(default)))
 
@@ -260,70 +249,95 @@ def _cleanup_offline() -> None:
             logger.warning("[Backup] Could not delete %s: %s", f, exc)
 
 
-# ─────────────────────────────── cloud (Dropbox) ──────────────────────────────
+# ─────────────────────────────── cloud (Email SMTP) ───────────────────────────
 
-def _upload_to_dropbox(zip_bytes: bytes, filename: str) -> bool:
-    token = getattr(settings, "DROPBOX_ACCESS_TOKEN", None)
-    if not token:
-        logger.warning("[Backup] DROPBOX_ACCESS_TOKEN not configured — cloud backup skipped.")
+def _send_email_backup(zip_bytes: bytes, filename: str) -> bool:
+    """
+    Sends the backup ZIP as an email attachment.
+    Uses Python's built-in smtplib — no extra packages needed.
+
+    Supports Gmail and Outlook:
+      Gmail  → host: smtp.gmail.com,       port: 587
+      Outlook→ host: smtp.office365.com,   port: 587
+
+    Required settings (set via environment variables):
+      BACKUP_EMAIL_HOST     — SMTP host     (default: smtp.gmail.com)
+      BACKUP_EMAIL_PORT     — SMTP port     (default: 587)
+      BACKUP_EMAIL_USER     — sender email  (your Gmail/Outlook address)
+      BACKUP_EMAIL_PASSWORD — App Password  (NOT your real password)
+      BACKUP_EMAIL_TO       — recipient     (who receives the backup email)
+    """
+    host     = getattr(settings, "BACKUP_EMAIL_HOST",     "smtp.gmail.com")
+    port     = getattr(settings, "BACKUP_EMAIL_PORT",     587)
+    user     = getattr(settings, "BACKUP_EMAIL_USER",     "")
+    password = getattr(settings, "BACKUP_EMAIL_PASSWORD", "")
+    to       = getattr(settings, "BACKUP_EMAIL_TO",       "")
+
+    if not all([user, password, to]):
+        logger.warning(
+            "[Backup] Email backup skipped — BACKUP_EMAIL_USER / "
+            "BACKUP_EMAIL_PASSWORD / BACKUP_EMAIL_TO not configured."
+        )
         return False
+
     try:
-        import dropbox
-        from dropbox.files import WriteMode
+        now_str = datetime.datetime.now().strftime("%B %d, %Y %I:%M %p")
 
-        folder      = getattr(settings, "DROPBOX_BACKUP_FOLDER", "/GreenGardenBackups")
-        remote_path = f"{folder.rstrip('/')}/{filename}"
+        # ── Build the email ────────────────────────────────────────────────
+        msg            = MIMEMultipart()
+        msg["From"]    = f"Green Garden Backup <{user}>"
+        msg["To"]      = to
+        msg["Subject"] = f"[Green Garden] Backup — {now_str}"
 
-        with dropbox.Dropbox(token) as dbx:
-            # Quick auth check before uploading
-            dbx.users_get_current_account()
-            dbx.files_upload(zip_bytes, remote_path, mode=WriteMode.overwrite)
+        body_text = (
+            f"Automated backup from Green Garden cemetery management system.\n\n"
+            f"Date     : {now_str}\n"
+            f"File     : {filename}\n"
+            f"Contents : clients, plans, payments, bookings, employees, logs, db\n\n"
+            f"Keep this email as a recovery point.\n"
+            f"To restore: extract the ZIP and import the CSVs or replace db.sqlite3."
+        )
+        msg.attach(MIMEText(body_text, "plain"))
 
-        logger.info("[Backup] Dropbox uploaded → %s", remote_path)
+        # ── Attach the ZIP ─────────────────────────────────────────────────
+        attachment = MIMEBase("application", "zip")
+        attachment.set_payload(zip_bytes)
+        encoders.encode_base64(attachment)
+        attachment.add_header(
+            "Content-Disposition",
+            f'attachment; filename="{filename}"',
+        )
+        msg.attach(attachment)
+
+        # ── Send ───────────────────────────────────────────────────────────
+        with smtplib.SMTP(host, port, timeout=30) as server:
+            server.ehlo()
+            server.starttls()
+            server.login(user, password)
+            server.send_message(msg)
+
+        logger.info("[Backup] Email sent → %s", to)
         return True
 
-    except ImportError:
-        logger.error("[Backup] 'dropbox' package not installed. Run: pip install dropbox")
+    except smtplib.SMTPAuthenticationError as exc:
+        logger.error(
+            "[Backup] Email auth failed — wrong App Password or 2FA not enabled. %s", exc
+        )
+        return False
+    except smtplib.SMTPConnectError as exc:
+        logger.error("[Backup] Email connection failed — check internet / firewall. %s", exc)
+        return False
+    except smtplib.SMTPException as exc:
+        logger.error("[Backup] Email SMTP error: %s", exc)
         return False
     except Exception as exc:
-        logger.error("[Backup] Dropbox upload failed: %s", exc)
+        logger.error("[Backup] Email backup failed (%s): %s", type(exc).__name__, exc)
         return False
-
-
-def _cleanup_dropbox() -> None:
-    token = getattr(settings, "DROPBOX_ACCESS_TOKEN", None)
-    if not token:
-        return
-    try:
-        import dropbox
-        from dropbox.files import FileMetadata
-
-        retention = getattr(settings, "BACKUP_RETENTION_DAYS", 90)
-        cutoff    = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=retention)
-        folder    = getattr(settings, "DROPBOX_BACKUP_FOLDER", "/GreenGardenBackups")
-
-        with dropbox.Dropbox(token) as dbx:
-            try:
-                result = dbx.files_list_folder(folder)
-            except dropbox.exceptions.ApiError:
-                return  # folder doesn't exist yet
-            for entry in result.entries:
-                if isinstance(entry, FileMetadata) and entry.client_modified < cutoff:
-                    dbx.files_delete_v2(entry.path_lower)
-                    logger.info("[Backup] Deleted old Dropbox backup: %s", entry.name)
-    except ImportError:
-        pass
-    except Exception as exc:
-        logger.warning("[Backup] Dropbox cleanup failed: %s", exc)
 
 
 # ─────────────────────────────── core ─────────────────────────────────────────
 
 def _do_backup(trigger: str, force: bool = False) -> dict:
-    """
-    Build + save backup. Returns a status dict.
-    force=True bypasses the cooldown (used for manual backups).
-    """
     global _last_backup_time
 
     with _backup_lock:
@@ -344,14 +358,13 @@ def _do_backup(trigger: str, force: bool = False) -> dict:
 
         filename   = f"backup_{ts}_{trigger}.zip"
         offline_ok = _save_offline(zip_bytes, filename)
-        cloud_ok   = _upload_to_dropbox(zip_bytes, filename)
+        cloud_ok   = _send_email_backup(zip_bytes, filename)
 
         if not offline_ok and not cloud_ok:
             return {"success": False, "reason": "all_destinations_failed"}
 
         _last_backup_time = datetime.datetime.now()
         _cleanup_offline()
-        _cleanup_dropbox()
 
         return {
             "success":  True,
@@ -375,8 +388,5 @@ def trigger_backup(trigger: str = "activity") -> None:
 
 
 def trigger_manual_backup() -> dict:
-    """
-    Synchronous manual backup — bypasses cooldown.
-    Called by: python manage.py backup_now
-    """
+    """Synchronous — used by management command and Backup Now button."""
     return _do_backup("manual", force=True)
