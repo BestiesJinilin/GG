@@ -238,7 +238,7 @@ document.getElementById("backup-now-btn").addEventListener("click", function () 
     resultEl.classList.remove("d-none");
     if (data.success) {
       const local = data.offline ? "✓ Local" : "✗ Local";
-      const cloud = data.cloud   ? "✓ Cloud" : "✗ Cloud (check token)";
+      const cloud = data.cloud   ? "✓ Email sent" : "✗ Email failed (check settings)";
       resultEl.innerHTML =
         `<div class="alert alert-success py-2 mb-0">
            <strong>Backup complete!</strong><br>
