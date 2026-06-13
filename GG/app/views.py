@@ -13,6 +13,7 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.conf import settings
 from django.utils import timezone
 from django.utils.timezone import localtime
 from django.views.decorators.http import require_POST
@@ -1183,6 +1184,65 @@ def backup_status_view(request):
         "directory": str(backup_dir),
         "last":      last_info,
         "total":     len(files),
+    })
+
+
+@_admin_required
+def system_settings_view(request):
+    """
+    Admin-only page to manage encrypted system secrets.
+    Values are stored encrypted in DB — never exposed in source code.
+    """
+    from .models import SystemSecret
+ 
+    # ── Default secrets with labels (created if they don't exist) ─────────────
+    DEFAULTS = [
+        ("BACKUP_EMAIL_HOST",     "smtp.gmail.com", "Email SMTP Host"),
+        ("BACKUP_EMAIL_PORT",     "587",            "Email SMTP Port"),
+        ("BACKUP_EMAIL_USER",     "",               "Email Sender Address"),
+        ("BACKUP_EMAIL_PASSWORD", "",               "Email App Password"),
+        ("BACKUP_EMAIL_TO",       "",               "Email Recipient Address"),
+        ("ADMIN_PIN",             "",               "Admin PIN (4 digits)"),
+    ]
+ 
+    for key, default_val, label in DEFAULTS:
+        SystemSecret.objects.get_or_create(
+            key=key,
+            defaults={"label": label, "encrypted_value": ""},
+        )
+ 
+    message = None
+    error   = None
+ 
+    if request.method == "POST":
+        pin = request.POST.get("pin", "")
+        if pin != settings.ADMIN_PIN:
+            error = "Incorrect PIN."
+        else:
+            for key, _, _ in DEFAULTS:
+                new_val = request.POST.get(key, "").strip()
+                if new_val:   # only update if a value was provided
+                    obj = SystemSecret.objects.get(key=key)
+                    obj.set_value(new_val)
+                    obj.save()
+            _log_activity(request.user, "System Settings", "Updated encrypted system secrets.")
+            message = "Settings saved and encrypted successfully."
+ 
+    # Build context — decrypt current values for display (masked)
+    secrets = []
+    for key, _, label in DEFAULTS:
+        obj = SystemSecret.objects.get(key=key)
+        val = obj.get_value()
+        secrets.append({
+            "key":   key,
+            "label": label,
+            "set":   bool(val),   # just show whether it's set, not the value
+        })
+ 
+    return render(request, "app/system_settings.html", {
+        "secrets": secrets,
+        "message": message,
+        "error":   error,
     })
  
  
