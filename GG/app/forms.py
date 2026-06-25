@@ -170,6 +170,9 @@ class ClientForm(BootstrapForm):
             widget=forms.Select(attrs={"class": "form-control"}),
             required=True,
         )
+        self.fields["client_contact_number"].widget.attrs.update({
+            "maxlength": "11", "inputmode": "numeric",
+        })
 
     def clean_client_first_name(self):
         return clean_name(self.cleaned_data.get("client_first_name"), "First name")
@@ -320,6 +323,10 @@ class EmployeeCreateForm(BootstrapForm):
             widget=forms.Select(attrs={"class": "form-control"}),
             required=True,
         )
+        for f in ["phone_number", "emergency_contact_number"]:
+            self.fields[f].widget.attrs.update({
+                "maxlength": "11", "inputmode": "numeric",
+            })
 
     def clean_username(self):
         username = self.cleaned_data.get("username", "").strip()
@@ -404,6 +411,10 @@ class EmployeeUpdateForm(forms.Form):
             field.widget.attrs["class"] = "form-control"
             if name in placeholders and not isinstance(field.widget, forms.Select):
                 field.widget.attrs["placeholder"] = placeholders[name]
+        for f in ["phone_number", "emergency_contact_number"]:
+            self.fields[f].widget.attrs.update({
+                "maxlength": "11", "inputmode": "numeric",
+            })
 
     def clean_first_name(self):
         return clean_name(self.cleaned_data.get("first_name"), "First name")
@@ -456,7 +467,7 @@ class PlanForm(forms.Form):
         # Special types
         ("THS",             "THS"),
         ("THTC",            "THTC"),
-        ("TCT A/R",         "TCT A/R"),
+        ("Columbarium",     "Columbarium"),
     ]
     DURATION_CHOICES = [
         ("", "Select Duration"),
@@ -540,10 +551,9 @@ class PlanForm(forms.Form):
     # ── Columbarium (TCT A/R) ─────────────────────────────────────────────
     columbarium_type = forms.ChoiceField(
         choices=[
-            ("",        "Select Type"),
-            ("Condo",   "Condo"),
-            ("Niche 1", "Niche 1"),
-            ("Niche 2", "Niche 2"),
+            ("",                      "Select Type"),
+            ("TCT A/R Condo Niche 1", "TCT A/R Condo Niche 1"),
+            ("TCT A/R Condo Niche 2", "TCT A/R Condo Niche 2"),
         ],
         required=False,
         widget=forms.Select(attrs={"class": "form-control"}),
@@ -671,6 +681,9 @@ class BookingForm(forms.ModelForm):
         self.fields["booking_time"].widget.attrs.update({
             "class": "form-select d-none",
             "id": "id_booking_time",
+        })
+        self.fields["contact_number"].widget.attrs.update({
+            "maxlength": "11", "inputmode": "numeric",
         })
  
     def clean_client_name(self):
