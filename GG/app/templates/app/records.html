@@ -7,7 +7,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h4>Client Records</h4>
   <div>
-    <a href="{% url 'export-records' %}" class="btn btn-outline-success">📥 Export Excel</a>
+    <a href="{% url 'export-records' %}" class="btn btn-outline-success">📥 Export</a>
     <a href="{% url 'add-client' %}"
      class="btn btn-primary"
      onclick="return requireRole('general_staff', 'Only General Staff can add new clients.')">
