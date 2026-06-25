@@ -60,11 +60,11 @@ Technologies Used :
 - Backend: Python with Django Framework
 - Database: SQLite
 
-Development Tools:
+Development and Collaboration Tools:
 
 - Code Editor: Visual Studio Code
 - Version Control and Repository : GitHub
-- Design and Documentation Tool: Canva, Google Docs
+- Design and Documentation : Canva, Google Docs
 
 
 Developers :
