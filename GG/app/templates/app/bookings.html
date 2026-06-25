@@ -21,7 +21,6 @@
 .slot-btn  { min-width:88px; font-size:.8rem; }
 .slot-taken { font-size:.8rem; min-width:88px; }
 
-/* ── Interment indicator ─────────────────────────────────────────── */
 .cal-day .interment-lbl {
   font-size: 8px;
   display: block;
@@ -30,7 +29,6 @@
   line-height: 1.1;
   margin-top: 1px;
 }
-/* Purple dot in top-right of cell */
 .cal-day.has-interment::after {
   content: '';
   position: absolute;
@@ -51,7 +49,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h4 class="mb-0">Bookings</h4>
   <div class="d-flex gap-2 no-print">
-    <a href="{% url 'export-bookings' %}" class="btn btn-outline-success btn-sm">📥 Export Excel</a>
+    <a href="{% url 'export-bookings' %}" class="btn btn-outline-success btn-sm">📥 Export</a>
     <a href="{% url 'calendar' %}" class="btn btn-outline-primary btn-sm">📅 Full Calendar</a>
   </div>
 </div>
