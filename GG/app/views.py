@@ -277,10 +277,11 @@ def homepage_view(request):
         .order_by("-date_paid")[:5]
     )
 
-    recent_activity = (
-        ActivityLog.objects
-        .order_by("-timestamp")[:8]
-    )
+    is_admin = request.user.is_superuser or request.user.username == "admin"
+    activity_qs = ActivityLog.objects.order_by("-timestamp")
+    if not is_admin:
+        activity_qs = activity_qs.exclude(role="Admin")
+    recent_activity = activity_qs[:8]
  
     return render(request, "app/homepage.html", {
         "total_clients":    total_clients,
@@ -298,10 +299,10 @@ def homepage_view(request):
 
 @login_required(login_url="login")
 def add_client_view(request):
+    if not _check_write_role(request, "General Staff"):
+        messages.error(request, "Access restricted. Only General Staff can add new clients.")
+        return redirect("records")
     if request.method == "POST":
-        if not _check_write_role(request, "General Staff"):
-            messages.error(request, "Access restricted. Only General Staff can add clients.")
-            return redirect("records")
         form                = ClientForm(request.POST)
         beneficiary_formset = BeneficiaryFormSet(request.POST, prefix="beneficiaries")
 
