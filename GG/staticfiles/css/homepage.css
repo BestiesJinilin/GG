@@ -2,7 +2,7 @@ body {
   background: #f5f6fa;
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
-  padding: 0; /* no padding needed — spacer div in base.html handles the offset */
+  padding: 0;
 }
 
 .topbar {
@@ -18,9 +18,10 @@ body {
   height: calc(100vh - 60px);
   background: #2f3640;
   overflow-y: auto;
-  z-index: 100;
+  z-index: 200;
   padding-top: 20px;
   flex-shrink: 0;
+  transition: transform 0.28s ease;
 }
 
 .sidebar .nav-link {
@@ -82,9 +83,101 @@ body {
 .available { background: #28a745; }
 .sold      { background: #dc3545; }
 
+
+/* ── RESPONSIVE: Sidebar toggle button ───────────────────────────────────── */
+
+.sidebar-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 6px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle:hover {
+  opacity: 0.85;
+}
+
+/* Dim overlay that appears behind the sidebar on mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 150;
+}
+
+.sidebar-overlay.active {
+  display: block;
+}
+
+
+/* ── RESPONSIVE: Tablet (< 992px) ────────────────────────────────────────── */
+
+@media (max-width: 991.98px) {
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 200;
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+    box-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+  }
+
+  .content {
+    margin-left: 0;
+    padding: 20px;
+  }
+}
+
+
+/* ── RESPONSIVE: Mobile (< 576px) ────────────────────────────────────────── */
+
+@media (max-width: 575.98px) {
+  .content {
+    padding: 12px 10px;
+  }
+
+  /* Compact admin box */
+  .admin-box {
+    font-size: 12px;
+    padding: 4px 10px;
+  }
+
+  /* Tables: ensure horizontal scroll works well */
+  .table-responsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Cards: reduce padding on small screens */
+  .card-body {
+    padding: 1rem;
+  }
+
+  /* Tighten up button groups */
+  .btn-sm {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.45rem;
+  }
+}
+
+
+/* ── PRINT ────────────────────────────────────────────────────────────────── */
+
 @media print {
   .topbar,
   .sidebar,
+  .sidebar-overlay,
   .no-print,
   .alert,
   .modal,
