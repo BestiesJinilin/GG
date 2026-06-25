@@ -126,7 +126,7 @@
     <div id="group-columbarium" class="d-none">
       <div class="row g-3 mb-3">
         <div class="col-md-3">
-          <label class="form-label small fw-semibold text-info">TCT A/R Type</label>
+          <label class="form-label small fw-semibold text-info">Columbarium Type</label>
           {{ form.columbarium_type }}
           {% if form.columbarium_type.errors %}<div class="text-danger small mt-1">{{ form.columbarium_type.errors.0 }}</div>{% endif %}
         </div>
@@ -193,7 +193,7 @@
         <th>Contract No.</th>
         <th>Interment Date</th>
         <th>P.A. Date</th>
-        <th>TCT A/R</th>
+        <th>Col. Type</th>
         <th>Col. Level</th>
         <th>Tomb No.</th>
         <th class="text-center">Status</th>
@@ -220,7 +220,7 @@
         <td>{{ data.duration }} mo.</td>
 
         <!-- Location — standard / THS / THTC -->
-        {% if data.plan == "TCT A/R" %}
+        {% if data.plan == "Columbarium" %}
           <td colspan="4" class="text-muted small text-center">— Columbarium —</td>
           <td><span class="text-muted">—</span></td>
         {% else %}
@@ -251,7 +251,7 @@
         <td>{{ data.pa_date|default:"—" }}</td>
 
         <!-- Columbarium — TCT A/R only -->
-        {% if data.plan == "TCT A/R" %}
+        {% if data.plan == "Columbarium" %}
           <td>{{ data.columbarium_type|default:"—" }}</td>
           <td>{% if data.columbarium_level %}Level {{ data.columbarium_level }}{% else %}—{% endif %}</td>
           <td>{{ data.tomb_number|default:"—" }}</td>
@@ -354,7 +354,7 @@ updateEffectiveDP();
 const TYPE_TO_GROUP = {
   "THS":    "ths",
   "THTC":   "ths",
-  "TCT A/R":"columbarium",
+  "Columbarium":"columbarium",
 };
 
 const BADGE = {
