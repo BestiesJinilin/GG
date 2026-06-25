@@ -7,7 +7,7 @@
 .cal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
 .cal-grid   { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
 .cal-day-header { text-align:center; font-size:.72rem; font-weight:600; color:#6c757d; padding:4px 0; }
-.cal-day    { text-align:center; padding:6px 2px; border-radius:6px; font-size:.8rem; cursor:default; user-select:none; }
+.cal-day    { text-align:center; padding:6px 2px; border-radius:6px; font-size:.8rem; cursor:default; user-select:none; position:relative; }
 .cal-day .lbl { font-size:9px; display:block; margin-top:1px; line-height:1; }
 .cal-day.empty     { background:transparent; }
 .cal-day.past      { background:#f8f9fa; color:#adb5bd; }
@@ -20,6 +20,30 @@
 .cal-day.selected  { background:#0d6efd !important; color:#fff !important; }
 .slot-btn  { min-width:88px; font-size:.8rem; }
 .slot-taken { font-size:.8rem; min-width:88px; }
+
+/* ── Interment indicator ─────────────────────────────────────────── */
+.cal-day .interment-lbl {
+  font-size: 8px;
+  display: block;
+  color: #6f42c1;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-top: 1px;
+}
+/* Purple dot in top-right of cell */
+.cal-day.has-interment::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  background: #6f42c1;
+  border-radius: 50%;
+}
+/* Keep dot visible even on selected/full cells */
+.cal-day.selected.has-interment::after { background: #fff; }
+.cal-day.past.has-interment::after     { background: #b39ddb; }
 </style>
 {% endblock %}
 
@@ -27,7 +51,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h4 class="mb-0">Bookings</h4>
   <div class="d-flex gap-2 no-print">
-    <a href="{% url 'export-bookings' %}" class="btn btn-outline-success btn-sm">📥 Export</a>
+    <a href="{% url 'export-bookings' %}" class="btn btn-outline-success btn-sm">📥 Export Excel</a>
     <a href="{% url 'calendar' %}" class="btn btn-outline-primary btn-sm">📅 Full Calendar</a>
   </div>
 </div>
@@ -72,12 +96,23 @@
           <span><span class="badge" style="background:#d1e7dd;color:#0a3622;">■</span> Available</span>
           <span><span class="badge" style="background:#fff3cd;color:#664d03;">■</span> Partial</span>
           <span><span class="badge" style="background:#f8d7da;color:#58151c;">■</span> Full</span>
+          <span><span style="display:inline-block;width:9px;height:9px;background:#6f42c1;border-radius:50%;vertical-align:middle;"></span> Interment</span>
         </div>
       </div>
 
       <div id="selected-date-display" class="alert alert-info py-2 mb-3 d-none">
         📅 <strong id="selected-date-label"></strong>
       </div>
+
+      <!-- ── Interment reminder (shown when selected date has one) ── -->
+      <div id="interment-notice" class="alert py-2 mb-3 d-none"
+           style="background:#f3e8ff;border:1px solid #c084fc;color:#4a235a;font-size:.85rem;">
+        <div class="d-flex align-items-start gap-2">
+          <span style="font-size:1.1rem;line-height:1;">⚰</span>
+          <div id="interment-notice-body"></div>
+        </div>
+      </div>
+
       <div id="fully-booked-notice" class="alert alert-danger py-2 mb-3 d-none">
         ⛔ This date is <strong>fully booked</strong>. Please choose another date.
       </div>
@@ -257,10 +292,11 @@
 <script>
 document.getElementById("booking-print-date").textContent = new Date().toLocaleString();
 
-// ── Booked slots ──────────────────────────────────────────────────────────
-const BOOKED_SLOTS = JSON.parse('{{ booked_slots_json|escapejs }}');
-const TOTAL_SLOTS  = 11;
-const TIME_SLOTS   = [
+// ── Data from server ──────────────────────────────────────────────────────
+const BOOKED_SLOTS    = JSON.parse('{{ booked_slots_json|escapejs }}');
+const INTERMENT_SLOTS = JSON.parse('{{ interment_slots_json|escapejs }}');
+const TOTAL_SLOTS     = 11;
+const TIME_SLOTS = [
   ["07:00","7:00 AM"],["08:00","8:00 AM"],["09:00","9:00 AM"],
   ["10:00","10:00 AM"],["11:00","11:00 AM"],["12:00","12:00 PM"],
   ["13:00","1:00 PM"],["14:00","2:00 PM"],["15:00","3:00 PM"],
@@ -273,41 +309,61 @@ let calYear  = new Date().getFullYear();
 let calMonth = new Date().getMonth();
 let selectedDate = "";
 
-function bookedCount(ds)      { return (BOOKED_SLOTS[ds] || []).length; }
-function isBooked(ds, t)      { return (BOOKED_SLOTS[ds] || []).includes(t); }
-function isSlotPast(ds, t)    {
+// ── Slot helpers ──────────────────────────────────────────────────────────
+function bookedCount(ds)   { return (BOOKED_SLOTS[ds] || []).length; }
+function isBooked(ds, t)   { return (BOOKED_SLOTS[ds] || []).includes(t); }
+function isSlotPast(ds, t) {
   const todayStr = fmtDate(new Date());
   if (ds !== todayStr) return false;
   const [h, m] = t.split(':').map(Number);
   const slot = new Date(); slot.setHours(h, m, 0, 0);
   return slot <= new Date();
 }
-function availableCount(ds)   {
+function availableCount(ds) {
   return TIME_SLOTS.filter(([v]) => !isBooked(ds, v) && !isSlotPast(ds, v)).length;
 }
-function isFull(ds)     { return availableCount(ds) === 0; }
-function isPartial(ds)  { const a = availableCount(ds); return a > 0 && a < TOTAL_SLOTS; }
+function isFull(ds)    { return availableCount(ds) === 0; }
+function isPartial(ds) { const a = availableCount(ds); return a > 0 && a < TOTAL_SLOTS; }
 
+// ── Calendar render ───────────────────────────────────────────────────────
 function renderCalendar() {
   const today    = new Date();
   const todayStr = fmtDate(today);
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const days     = new Date(calYear, calMonth + 1, 0).getDate();
-  document.getElementById("cal-month-label").textContent = `${MONTH_NAMES[calMonth]} ${calYear}`;
+
+  document.getElementById("cal-month-label").textContent =
+    `${MONTH_NAMES[calMonth]} ${calYear}`;
+
   let html = "";
   for (let i = 0; i < firstDay; i++) html += `<div class="cal-day empty"></div>`;
+
   for (let d = 1; d <= days; d++) {
-    const ds   = fmtDate(new Date(calYear, calMonth, d));
-    const past = ds < todayStr;
+    const ds           = fmtDate(new Date(calYear, calMonth, d));
+    const past         = ds < todayStr;
+    const hasInterment = !!INTERMENT_SLOTS[ds];
+    const intermentNames = INTERMENT_SLOTS[ds] || [];
+
     let cls = "cal-day", lbl = "";
-    if (past)            cls += " past";
-    else if (isFull(ds)) { cls += " full";  lbl = '<span class="lbl">Full</span>'; }
-    else if (isPartial(ds)) { cls += " partial"; lbl = `<span class="lbl">${bookedCount(ds)}/${TOTAL_SLOTS}</span>`; }
-    else                 cls += " available";
+    if (past)              cls += " past";
+    else if (isFull(ds))   { cls += " full";    lbl = `<span class="lbl">Full</span>`; }
+    else if (isPartial(ds)){ cls += " partial";  lbl = `<span class="lbl">${bookedCount(ds)}/${TOTAL_SLOTS}</span>`; }
+    else                   cls += " available";
+
     if (ds === todayStr)    cls += " today";
     if (ds === selectedDate) cls += " selected";
-    const click = (!past && !isFull(ds)) ? `onclick="pickDate('${ds}')"` : "";
-    html += `<div class="${cls}" ${click}>${d}${lbl}</div>`;
+    if (hasInterment)        cls += " has-interment";
+
+    // Interment label under the day number (always show, even on past/full)
+    const intermentLbl = hasInterment
+      ? `<span class="interment-lbl">⚰ Interment</span>`
+      : "";
+
+    const click = (!past && !isFull(ds))
+      ? `onclick="pickDate('${ds}')"`
+      : (hasInterment && !past ? `onclick="pickDate('${ds}')"` : "");
+
+    html += `<div class="${cls}" title="${hasInterment ? 'Interment: ' + intermentNames.join(', ') : ''}" ${click}>${d}${lbl}${intermentLbl}</div>`;
   }
   document.getElementById("cal-grid").innerHTML = html;
 }
@@ -316,15 +372,20 @@ function fmtDate(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-document.getElementById("cal-prev").addEventListener("click", () => { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); });
-document.getElementById("cal-next").addEventListener("click", () => { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); });
+document.getElementById("cal-prev").addEventListener("click", () => {
+  calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar();
+});
+document.getElementById("cal-next").addEventListener("click", () => {
+  calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar();
+});
 
 function pickDate(ds) {
   selectedDate = ds;
   document.getElementById("id_booking_date").value = ds;
   const d = new Date(ds + "T00:00:00");
   calYear = d.getFullYear(); calMonth = d.getMonth();
-  renderCalendar(); showSlots(ds);
+  renderCalendar();
+  showSlots(ds);
 }
 
 document.getElementById("id_booking_date").addEventListener("change", function () {
@@ -332,20 +393,50 @@ document.getElementById("id_booking_date").addEventListener("change", function (
   selectedDate = this.value;
   const d = new Date(this.value + "T00:00:00");
   calYear = d.getFullYear(); calMonth = d.getMonth();
-  renderCalendar(); showSlots(this.value);
+  renderCalendar();
+  showSlots(this.value);
 });
 
+// ── Show slots + interment notice ─────────────────────────────────────────
 function showSlots(ds) {
-  const selDisplay = document.getElementById("selected-date-display");
-  const selLabel   = document.getElementById("selected-date-label");
-  const fullNotice = document.getElementById("fully-booked-notice");
-  const slotSec    = document.getElementById("slot-section");
-  const slotGrid   = document.getElementById("slot-grid");
+  const selDisplay    = document.getElementById("selected-date-display");
+  const selLabel      = document.getElementById("selected-date-label");
+  const fullNotice    = document.getElementById("fully-booked-notice");
+  const intermentNotice = document.getElementById("interment-notice");
+  const intermentBody   = document.getElementById("interment-notice-body");
+  const slotSec       = document.getElementById("slot-section");
+  const slotGrid      = document.getElementById("slot-grid");
+
   const d = new Date(ds + "T00:00:00");
-  selLabel.textContent = d.toLocaleDateString("en-PH", { weekday:"long", year:"numeric", month:"long", day:"numeric" });
+  selLabel.textContent = d.toLocaleDateString("en-PH", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric"
+  });
   selDisplay.classList.remove("d-none");
-  if (isFull(ds)) { fullNotice.classList.remove("d-none"); slotSec.classList.add("d-none"); return; }
-  fullNotice.classList.add("d-none"); slotSec.classList.remove("d-none");
+
+  // ── Show interment reminder if any ───────────────────────────────────
+  const intermentNames = INTERMENT_SLOTS[ds] || [];
+  if (intermentNames.length > 0) {
+    const nameList = intermentNames.map(n => `<strong>${n}</strong>`).join("<br>");
+    intermentBody.innerHTML =
+      `<div class="fw-semibold mb-1">Interment scheduled on this date:</div>
+       ${nameList}
+       <div class="mt-1" style="font-size:.78rem;color:#7c3aed;">
+         Slots are still open — this is a reminder only.
+       </div>`;
+    intermentNotice.classList.remove("d-none");
+  } else {
+    intermentNotice.classList.add("d-none");
+  }
+
+  // ── Fully booked check ────────────────────────────────────────────────
+  if (isFull(ds)) {
+    fullNotice.classList.remove("d-none");
+    slotSec.classList.add("d-none");
+    return;
+  }
+  fullNotice.classList.add("d-none");
+  slotSec.classList.remove("d-none");
+
   document.getElementById("id_booking_time").value = "";
   let html = "";
   TIME_SLOTS.forEach(([val, label]) => {
@@ -358,9 +449,12 @@ function showSlots(ds) {
     }
   });
   slotGrid.innerHTML = html;
+
   slotGrid.querySelectorAll(".slot-btn").forEach(btn => {
     btn.addEventListener("click", function () {
-      slotGrid.querySelectorAll(".slot-btn").forEach(b => { b.classList.remove("btn-success"); b.classList.add("btn-outline-success"); });
+      slotGrid.querySelectorAll(".slot-btn").forEach(b => {
+        b.classList.remove("btn-success"); b.classList.add("btn-outline-success");
+      });
       this.classList.remove("btn-outline-success"); this.classList.add("btn-success");
       document.getElementById("id_booking_time").value = this.dataset.val;
       document.getElementById("slot-error").classList.add("d-none");
@@ -373,7 +467,7 @@ function validateBookingForm() {
   const date = document.getElementById("id_booking_date").value;
   if (date && !time) {
     document.getElementById("slot-error").classList.remove("d-none");
-    document.getElementById("slot-section").scrollIntoView({ behavior:"smooth" });
+    document.getElementById("slot-section").scrollIntoView({ behavior: "smooth" });
     return false;
   }
   return true;
@@ -404,9 +498,9 @@ document.querySelectorAll(".cancel-booking-btn").forEach(btn => {
 });
 
 document.getElementById("confirmCancelBookingBtn").addEventListener("click", function () {
-  const pin = document.getElementById("cancelBookingPinInput").value;
+  const pin    = document.getElementById("cancelBookingPinInput").value;
   const reason = document.getElementById("cancelBookingReason").value;
-  const errEl = document.getElementById("cancelBookingPinError");
+  const errEl  = document.getElementById("cancelBookingPinError");
   if (!pin) { errEl.textContent = "Please enter your PIN."; errEl.classList.remove("d-none"); return; }
   const btn = this; btn.disabled = true; btn.textContent = "Cancelling…";
   fetch(`/cancel-booking/${cancelBookingPk}/`, {
@@ -417,8 +511,10 @@ document.getElementById("confirmCancelBookingBtn").addEventListener("click", fun
   .then(r => r.json())
   .then(data => {
     if (data.success) {
-      document.getElementById(`booking-status-${cancelBookingPk}`).innerHTML = '<span class="badge bg-danger">Cancelled</span>';
-      document.getElementById(`booking-action-${cancelBookingPk}`).innerHTML = '<span class="text-muted small">—</span>';
+      document.getElementById(`booking-status-${cancelBookingPk}`).innerHTML =
+        '<span class="badge bg-danger">Cancelled</span>';
+      document.getElementById(`booking-action-${cancelBookingPk}`).innerHTML =
+        '<span class="text-muted small">—</span>';
       cancelBookingModal.hide();
     } else {
       errEl.textContent = data.error || "Failed.";
@@ -426,7 +522,11 @@ document.getElementById("confirmCancelBookingBtn").addEventListener("click", fun
       btn.disabled = false; btn.textContent = "Confirm Cancellation";
     }
   })
-  .catch(() => { errEl.textContent = "Network error."; errEl.classList.remove("d-none"); btn.disabled = false; btn.textContent = "Confirm Cancellation"; });
+  .catch(() => {
+    errEl.textContent = "Network error.";
+    errEl.classList.remove("d-none");
+    btn.disabled = false; btn.textContent = "Confirm Cancellation";
+  });
 });
 
 // ── No Show ───────────────────────────────────────────────────────────────
@@ -461,8 +561,10 @@ document.getElementById("confirmNoShowBtn").addEventListener("click", function (
   .then(r => r.json())
   .then(data => {
     if (data.success) {
-      document.getElementById(`booking-status-${noShowPk}`).innerHTML = '<span class="badge bg-warning text-dark">No Show</span>';
-      document.getElementById(`booking-action-${noShowPk}`).innerHTML = '<span class="text-muted small">—</span>';
+      document.getElementById(`booking-status-${noShowPk}`).innerHTML =
+        '<span class="badge bg-warning text-dark">No Show</span>';
+      document.getElementById(`booking-action-${noShowPk}`).innerHTML =
+        '<span class="text-muted small">—</span>';
       noShowModal.hide();
     } else {
       errEl.textContent = data.error || "Failed.";
@@ -470,7 +572,11 @@ document.getElementById("confirmNoShowBtn").addEventListener("click", function (
       btn.disabled = false; btn.textContent = "Confirm No Show";
     }
   })
-  .catch(() => { errEl.textContent = "Network error."; errEl.classList.remove("d-none"); btn.disabled = false; btn.textContent = "Confirm No Show"; });
+  .catch(() => {
+    errEl.textContent = "Network error.";
+    errEl.classList.remove("d-none");
+    btn.disabled = false; btn.textContent = "Confirm No Show";
+  });
 });
 </script>
 {% endblock %}
