@@ -82,7 +82,7 @@ class ClientStatus(models.Model):
         ("Grand estate",    "Grand estate"),
         ("THS",             "THS"),
         ("THTC",            "THTC"),
-        ("TCT A/R",         "TCT A/R"),
+        ("Columbarium",     "Columbarium"),
     ]
     DURATION_CHOICES = [
         (6,  "6 Months"),
@@ -133,9 +133,8 @@ class ClientStatus(models.Model):
  
     # ── Columbarium ───────────────────────────────────────────────────────
     COLUMBARIUM_TYPE_CHOICES = [
-        ("Condo",   "Condo"),
-        ("Niche 1", "Niche 1"),
-        ("Niche 2", "Niche 2"),
+        ("TCT A/R Condo Niche 1", "TCT A/R Condo Niche 1"),
+        ("TCT A/R Condo Niche 2", "TCT A/R Condo Niche 2"),
     ]
     COLUMBARIUM_LEVEL_CHOICES = [
         (1, "Level 1"),
