@@ -30,6 +30,10 @@
     <span class="fw-bold text-white d-none d-sm-inline">Green Garden</span>
   </a>
 
+
+
+      
+
   <!-- Right side -->
   <div class="d-flex align-items-center gap-1 gap-md-2">
 
@@ -39,14 +43,17 @@
       <div id="time" class="fw-bold"></div>
     </div>
 
-    <!-- Username + role — hidden below md -->
-    <div class="me-1 me-md-2 text-end d-none d-md-block">
-      <span class="admin-box">{{ user.username|title }}</span><br>
-      <small class="text-white opacity-75" style="font-size:11px;">
+    <div class="d-flex align-items-center gap-1 gap-md-2">
+        <small class="text-white opacity-75" style="font-size:11px;">
         {% if user.is_superuser or user.username == "admin" %}ADMIN
         {% else %}{{ user.userlog.role|default:"—" }}
         {% endif %}
-      </small>
+      </small>    
+    </div>
+
+    <!-- Username + role — hidden below md -->
+    <div class="me-1 me-md-2 text-end d-none d-md-block">
+      <span class="admin-box">{{ user.username|title }}</span><br>
     </div>
 
     <!-- Logout -->
