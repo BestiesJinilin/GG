@@ -16,102 +16,126 @@
 
 <body>
 
-<!-- TOP NAVBAR — fixed-top keeps it pinned while scrolling -->
-<nav class="navbar navbar-dark topbar fixed-top px-4">
-  <a class="navbar-brand d-flex align-items-center" href="{% url 'homepage' %}">
-    <img src="{% static 'img/landing/logo.png' %}" height="35" class="me-2" alt="Green Garden Logo">
-    <span class="fw-bold text-white">Green Garden</span>
+<!-- ── TOP NAVBAR ─────────────────────────────────────────────────────────── -->
+<nav class="navbar navbar-dark topbar fixed-top px-2 px-md-4">
+
+  <!-- Hamburger — visible only on tablet/mobile (< 992px) -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Open navigation" type="button">
+    &#9776;
+  </button>
+
+  <!-- Brand -->
+  <a class="navbar-brand d-flex align-items-center me-auto ms-1 ms-md-0" href="{% url 'homepage' %}">
+    <img src="{% static 'img/landing/logo.png' %}" height="32" class="me-2" alt="Green Garden Logo">
+    <span class="fw-bold text-white d-none d-sm-inline">Green Garden</span>
   </a>
-  <div class="ms-auto d-flex align-items-center">
-    <div class="me-4 text-end text-white">
+
+  <!-- Right side -->
+  <div class="d-flex align-items-center gap-1 gap-md-2">
+
+    <!-- Date & time — hidden below lg -->
+    <div class="me-2 text-end text-white d-none d-lg-block">
       <div id="date" class="small"></div>
       <div id="time" class="fw-bold"></div>
     </div>
-    <div class="me-2 text-end">
-      <span class="admin-box">{{ user.username|title }}</span>
-      <br>
-      <small class="text-white opacity-75" style="font-size:12px;">
+
+    <!-- Username + role — hidden below md -->
+    <div class="me-1 me-md-2 text-end d-none d-md-block">
+      <span class="admin-box">{{ user.username|title }}</span><br>
+      <small class="text-white opacity-75" style="font-size:11px;">
         {% if user.is_superuser or user.username == "admin" %}ADMIN
         {% else %}{{ user.userlog.role|default:"—" }}
         {% endif %}
       </small>
     </div>
-    <form method="POST" action="{% url 'logout' %}" class="ms-2">
+
+    <!-- Logout -->
+    <form method="POST" action="{% url 'logout' %}">
       {% csrf_token %}
-      <button type="submit" class="btn btn-danger px-4">Logout</button>
+      <button type="submit" class="btn btn-danger btn-sm px-2 px-md-4">
+        <span class="d-none d-md-inline">Logout</span>
+        <!-- Icon-only on very small screens -->
+        <span class="d-md-none" aria-hidden="true">&#x2715;</span>
+      </button>
     </form>
+
   </div>
 </nav>
 
-<!-- Spacer: pushes everything below the 60px fixed topbar -->
+<!-- Spacer: pushes content below the 60px fixed topbar -->
 <div style="height:60px;"></div>
+
+<!-- ── SIDEBAR OVERLAY (mobile tap-to-close) ─────────────────────────────── -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <div class="d-flex">
 
-<!-- SIDEBAR -->
-<div class="sidebar">
-  <ul class="nav flex-column">
-    <li class="nav-item">
-      <a class="nav-link {% block nav_dashboard %}{% endblock %}"
-         href="{% url 'homepage' %}">Dashboard</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link {% block nav_add_client %}{% endblock %}"
-         href="{% url 'add-client' %}">Add Client</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link {% block nav_records %}{% endblock %}"
-         href="{% url 'records' %}">Client Records</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link {% block nav_lots %}{% endblock %}"
-         href="{% url 'lots' %}">Lots</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link {% block nav_bookings %}{% endblock %}"
-         href="{% url 'bookings' %}">Bookings</a>
-    </li>
-    {% if is_admin or user.is_superuser or user.username == "admin" %}
-    <li class="nav-item">
-      <a class="nav-link {% block nav_employee %}{% endblock %}"
-         href="{% url 'employee' %}">Employee</a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link {% block nav_monitor %}{% endblock %}"
-         href="{% url 'monitor' %}">Monitor</a>
-    </li>
-    {% endif %}
-  </ul>
-</div>
-
-<!-- MAIN CONTENT -->
-<div class="{% block wrapper_class %}content{% endblock %}">
-  {% if messages %}
-  <div class="mb-3">
-    {% for message in messages %}
-    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    {% endfor %}
+  <!-- ── SIDEBAR ────────────────────────────────────────────────────────── -->
+  <div class="sidebar" id="mainSidebar">
+    <ul class="nav flex-column">
+      <li class="nav-item">
+        <a class="nav-link {% block nav_dashboard %}{% endblock %}"
+           href="{% url 'homepage' %}">Dashboard</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% block nav_add_client %}{% endblock %}"
+           href="{% url 'add-client' %}"
+           onclick="return requireRole('general_staff', 'Only General Staff can add new clients.')">Add Client</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% block nav_records %}{% endblock %}"
+           href="{% url 'records' %}">Client Records</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% block nav_lots %}{% endblock %}"
+           href="{% url 'lots' %}">Lots</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% block nav_bookings %}{% endblock %}"
+           href="{% url 'bookings' %}">Bookings</a>
+      </li>
+      {% if is_admin or user.is_superuser or user.username == "admin" %}
+      <li class="nav-item">
+        <a class="nav-link {% block nav_employee %}{% endblock %}"
+           href="{% url 'employee' %}">Employee</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {% block nav_monitor %}{% endblock %}"
+           href="{% url 'monitor' %}">Monitor</a>
+      </li>
+      {% endif %}
+    </ul>
   </div>
-  {% endif %}
-  {% block content %}{% endblock %}
-</div>
-</div>
+
+  <!-- ── MAIN CONTENT ───────────────────────────────────────────────────── -->
+  <div class="{% block wrapper_class %}content{% endblock %}">
+    {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+
+</div><!-- /.d-flex -->
 
 {% block modals %}{% endblock %}
 
-<!-- RESTRICTED ACCESS MODAL -->
+<!-- ── RESTRICTED ACCESS MODAL ───────────────────────────────────────────── -->
 <div class="modal fade" id="restrictedModal" tabindex="-1" aria-hidden="true">
 <div class="modal-dialog modal-sm modal-dialog-centered">
 <div class="modal-content border-0 shadow">
   <div class="modal-header bg-warning text-dark border-0">
-    <h5 class="modal-title fw-bold">⚠️ Access Restricted</h5>
+    <h5 class="modal-title fw-bold">&#9888;&#65039; Access Restricted</h5>
     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
   </div>
   <div class="modal-body text-center py-4">
-    <div style="font-size:2.5rem">🔒</div>
+    <div style="font-size:2.5rem">&#128274;</div>
     <p class="mt-3 mb-1 fw-semibold" id="restricted-msg">
       You don't have permission to perform this action.
     </p>
@@ -128,6 +152,7 @@
         integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
         crossorigin="anonymous"></script>
 
+<!-- User data for JS role checks -->
 <div id="gg-user-data"
      data-is-admin="{{ user.is_superuser|yesno:'true,false' }}"
      data-username="{{ user.username }}"
@@ -135,6 +160,7 @@
      style="display:none"></div>
 
 <script>
+/* ── User role context ──────────────────────────────────────────────────── */
 (function () {
   const el = document.getElementById('gg-user-data');
   const d  = el ? el.dataset : {};
@@ -162,6 +188,7 @@ function requireRole(roles, message) {
   return true;
 }
 
+/* ── Clock ──────────────────────────────────────────────────────────────── */
 (function () {
   const dateEl = document.getElementById("date");
   const timeEl = document.getElementById("time");
@@ -173,6 +200,56 @@ function requireRole(roles, message) {
   }
   setInterval(updateClock, 1000);
   updateClock();
+})();
+
+/* ── Responsive Sidebar Toggle ──────────────────────────────────────────── */
+(function () {
+  const toggle  = document.getElementById('sidebarToggle');
+  const sidebar = document.getElementById('mainSidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+
+  if (!toggle || !sidebar || !overlay) return;
+
+  function openSidebar() {
+    sidebar.classList.add('active');
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden'; // prevent background scroll
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('active');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  toggle.addEventListener('click', function () {
+    if (sidebar.classList.contains('active')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  });
+
+  // Tap the dim overlay to close
+  overlay.addEventListener('click', closeSidebar);
+
+  // Close when a sidebar nav link is tapped on mobile
+  sidebar.querySelectorAll('.nav-link').forEach(function (link) {
+    link.addEventListener('click', function () {
+      if (window.innerWidth < 992) {
+        closeSidebar();
+      }
+    });
+  });
+
+  // If window is resized back to desktop, reset everything
+  window.addEventListener('resize', function () {
+    if (window.innerWidth >= 992) {
+      sidebar.classList.remove('active');
+      overlay.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  });
 })();
 </script>
 
