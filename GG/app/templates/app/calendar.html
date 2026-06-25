@@ -14,6 +14,7 @@
   cursor: pointer;
   transition: opacity .15s;
   border-radius: 6px;
+  position: relative;
 }
 .cal-cell:hover         { opacity: .8; }
 .cal-cell.available     { background: #d1e7dd; color: #0a3622; }
@@ -22,6 +23,27 @@
 .cal-cell.today-cell    { outline: 2px solid #0d6efd; outline-offset: -2px; }
 .cal-cell.empty         { background: transparent; cursor: default; }
 .cal-cell.selected      { outline: 3px solid #198754; outline-offset: -3px; }
+
+/* ── Interment indicator ─────────────────────────────────────────── */
+.interment-mark {
+  display: block;
+  font-size: 9px;
+  line-height: 1.2;
+  color: #6f42c1;
+  font-weight: 600;
+  margin-top: 1px;
+}
+/* Purple dot in top-right corner of a cell that has an interment */
+.cal-cell.has-interment::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 7px;
+  height: 7px;
+  background: #6f42c1;
+  border-radius: 50%;
+}
 </style>
 {% endblock %}
 
@@ -67,6 +89,7 @@
                 {% if day in booked_dates %}booked
                 {% elif day in partially_booked_dates %}partial
                 {% else %}available{% endif %}
+                {% if day in interment_days %}has-interment{% endif %}
                 {% if today.day == day and today.month == month and today.year == year %}today-cell{% endif %}
                 {% if selected_date and selected_date.day == day and selected_date.month == month %}selected{% endif %}"
                 data-year="{{ year }}"
@@ -75,9 +98,12 @@
                 {% if day in booked_dates %}data-full="true"{% endif %}>
               {{ day }}
               {% if day in booked_dates %}
-                <br><small style="font-size:10px">Full</small>
+                <span class="interment-mark" style="color:#58151c;">Full</span>
               {% elif day in partially_booked_dates %}
-                <br><small style="font-size:10px">Partial</small>
+                <span class="interment-mark" style="color:#664d03;">Partial</span>
+              {% endif %}
+              {% if day in interment_days %}
+                <span class="interment-mark">⚰ Interment</span>
               {% endif %}
             </td>
           {% endif %}
@@ -88,11 +114,12 @@
     </table>
 
     <!-- Legend -->
-    <div class="mt-3 d-flex gap-3 flex-wrap">
+    <div class="mt-3 d-flex gap-3 flex-wrap" style="font-size:.8rem;">
       <span><span class="badge" style="background:#d1e7dd;color:#0a3622">■</span> Available</span>
       <span><span class="badge" style="background:#fff3cd;color:#664d03">■</span> Partially Booked</span>
       <span><span class="badge" style="background:#f8d7da;color:#58151c">■</span> Fully Booked</span>
-      <span style="outline:2px solid #0d6efd;outline-offset:-2px;padding:1px 6px;border-radius:4px;font-size:.75rem;">■ Today</span>
+      <span style="outline:2px solid #0d6efd;outline-offset:-2px;padding:1px 6px;border-radius:4px;">■ Today</span>
+      <span><span style="display:inline-block;width:10px;height:10px;background:#6f42c1;border-radius:50%;vertical-align:middle;margin-right:3px;"></span> Interment</span>
     </div>
 
   </div>
@@ -107,6 +134,25 @@
     {% if selected_date %}
       <h5 class="mb-1">{{ selected_date|date:"F j, Y" }}</h5>
       <p class="text-muted small mb-3">Booking window: 7:00 AM – 5:00 PM</p>
+
+      <!-- ── Interment reminder banner ─────────────────────────────── -->
+      {% if interments_on_selected %}
+      <div class="alert py-2 mb-3 d-flex align-items-start gap-2"
+           style="background:#f3e8ff;border:1px solid #c084fc;color:#4a235a;font-size:.85rem;">
+        <span style="font-size:1.1rem;line-height:1;">⚰</span>
+        <div>
+          <strong>Interment scheduled on this date:</strong>
+          <ul class="mb-0 mt-1 ps-3">
+            {% for name in interments_on_selected %}
+            <li>{{ name }}</li>
+            {% endfor %}
+          </ul>
+          <small class="text-muted" style="color:#7c3aed!important;">
+            Slots are still open — this is a reminder only.
+          </small>
+        </div>
+      </div>
+      {% endif %}
 
       <div class="list-group">
         {% for value, label in time_slots %}
