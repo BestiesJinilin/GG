@@ -777,7 +777,7 @@ def bookings_view(request):
             )
             return redirect("bookings")
  
-    # Build booked slots dict for calendar JS
+    # ── Build booked slots dict for calendar JS ───────────────────────────────
     active_bookings = (
         Booking.objects
         .filter(status="Active")
@@ -788,10 +788,120 @@ def bookings_view(request):
         date_str = b["booking_date"].strftime("%Y-%m-%d")
         booked_slots[date_str].append(b["booking_time"])
  
+    # ── Build interment slots dict for calendar JS ────────────────────────────
+    # Shows interment dates from ClientStatus as reminder dots on the calendar.
+    # They are NOT bookings — slots on these dates remain available.
+    interment_slots: dict = {}
+    for cs in ClientStatus.objects.filter(
+        interment_date__isnull=False
+    ).select_related("client"):
+        ds = cs.interment_date.strftime("%Y-%m-%d")
+        interment_slots.setdefault(ds, []).append(cs.client.full_name)
+ 
     return render(request, "app/bookings.html", {
-        "form":              form,
-        "bookings":          bookings,
-        "booked_slots_json": json.dumps(dict(booked_slots)),
+        "form":                 form,
+        "bookings":             bookings,
+        "booked_slots_json":    json.dumps(dict(booked_slots)),
+        "interment_slots_json": json.dumps(interment_slots),   # ← NEW
+    })
+ 
+ 
+# ─────────────────────────────────────────────── calendar ─────────────────────
+#
+# REPLACE the existing calendar_view function in views.py with this one.
+# Additions: interment_map, interment_days, interments_on_selected queries
+# and passing them in context.
+#
+ 
+@login_required(login_url="login")
+def calendar_view(request):
+    from collections import Counter
+ 
+    today = datetime.date.today()
+ 
+    try:
+        year  = int(request.GET.get("year",  today.year))
+        month = int(request.GET.get("month", today.month))
+    except ValueError:
+        year, month = today.year, today.month
+ 
+    if month < 1:
+        month, year = 12, year - 1
+    elif month > 12:
+        month, year = 1, year + 1
+ 
+    # ── Booking counts ────────────────────────────────────────────────────────
+    month_bookings = Booking.objects.filter(
+        booking_date__year=year,
+        booking_date__month=month,
+        status="Active",
+    )
+ 
+    total_slots    = len(Booking.TIME_SLOTS)  # 11
+    booking_counts = Counter(b.booking_date.day for b in month_bookings)
+ 
+    fully_booked_dates     = {d for d, c in booking_counts.items() if c >= total_slots}
+    partially_booked_dates = {d for d in booking_counts if d not in fully_booked_dates}
+ 
+    # ── Interment dates for this month ────────────────────────────────────────
+    # Builds {day_number: [client_name, ...]} for the displayed month.
+    # Passed to the template so interment indicators appear on calendar cells
+    # and in the side panel when a date is selected.
+    interment_map: dict = {}
+    for cs in ClientStatus.objects.filter(
+        interment_date__year=year,
+        interment_date__month=month,
+    ).exclude(interment_date=None).select_related("client"):
+        d = cs.interment_date.day
+        interment_map.setdefault(d, []).append(cs.client.full_name)
+ 
+    interment_days = set(interment_map.keys())   # set of int day numbers
+ 
+    # ── Calendar grid ─────────────────────────────────────────────────────────
+    cal_weeks = cal_module.monthcalendar(year, month)
+ 
+    prev_month, prev_year = (12, year - 1) if month == 1 else (month - 1, year)
+    next_month, next_year = (1,  year + 1) if month == 12 else (month + 1, year)
+ 
+    # ── Selected date + booked times + interments for that date ───────────────
+    selected_date_str    = request.GET.get("date", "").strip()
+    selected_date        = None
+    booked_times         = set()
+    interments_on_selected = []   # [client_name, ...] for the side panel
+ 
+    if selected_date_str:
+        try:
+            selected_date = datetime.date.fromisoformat(selected_date_str)
+            booked_times  = set(
+                Booking.objects.filter(
+                    booking_date=selected_date,
+                    status="Active",
+                ).values_list("booking_time", flat=True)
+            )
+            interments_on_selected = interment_map.get(selected_date.day, [])
+        except ValueError:
+            selected_date_str = ""
+ 
+    return render(request, "app/calendar.html", {
+        "cal_weeks":               cal_weeks,
+        "month":                   month,
+        "year":                    year,
+        "month_name":              cal_module.month_name[month],
+        "booked_dates":            fully_booked_dates,
+        "partially_booked_dates":  partially_booked_dates,
+        "prev_month":              prev_month,
+        "prev_year":               prev_year,
+        "next_month":              next_month,
+        "next_year":               next_year,
+        "today":                   today,
+        "time_slots":              Booking.TIME_SLOTS,
+        "booked_times":            booked_times,
+        "selected_date":           selected_date,
+        "selected_date_str":       selected_date_str,
+        "day_names":               ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        # ── Interment additions ──────────────────────────────────────────────
+        "interment_days":          interment_days,        # set of int day numbers
+        "interments_on_selected":  interments_on_selected, # list of client names
     })
 
 
